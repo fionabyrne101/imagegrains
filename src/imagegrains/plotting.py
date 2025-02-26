@@ -476,38 +476,45 @@ def ell_from_props(props,_idx=0):
     y = y0 + a/2 * np.cos(phi) * np.sin(-orientation) + b/2 * np.sin(phi) * np.cos(-orientation)
     return(x0,x1,x2,x3,x4,y0,y1,y2,y3,y4,x,y)
         
-def plot_gsd(gsd,color='c', perc_range=np.arange(0.01,1.01,0.01),length_max=300,gsd_id=None,title=None,label_axes=False,lw=.75,orientation='vertical',units='px',alpha=1):
-        if orientation == 'vertical':
-            xmax = length_max
-            xmin = 0
-            ymax= np.max(perc_range)
-            ymin = np.min(perc_range)
-            y = perc_range
-            x = gsd
-            if label_axes != False:
-                plt.xlabel('Grain Size ( '+str(units)+')')
-                plt.ylabel('Fraction smaller')
-        elif orientation == 'horizontal':
-            ymax = length_max
-            ymin = 0
-            xmax = np.max(perc_range)
-            xmin = np.min(perc_range)
-            x = perc_range
-            y = gsd 
-            if label_axes != False:
-                plt.xlabel('Grain Size ( '+str(units)+')')
-                plt.ylabel('Fraction smaller')
-        if not gsd_id:
-                plt.plot(x,y,color=color,linewidth=lw)
-        else:
-                plt.plot(x,y,color=color,label=gsd_id,linewidth=lw)
-        plt.ylim(ymin,ymax)
-        plt.xlim(xmin,xmax)
+def plot_gsd(gsd,color='c', perc_range=np.arange(0.01,1.01,0.01), length_max=300,
+             gsd_id=None, title=None, label_axes=False, lw=.75, orientation='vertical',
+             units='px',alpha=1, ax=None):
+    
+    if ax is None:
+        ax = plt.gca()
+    fig = ax.figure
 
-        if title:
-                plt.title(title,fontsize=8)
+    if orientation == 'vertical':
+        xmax = length_max
+        xmin = 0
+        ymax= np.max(perc_range)
+        ymin = np.min(perc_range)
+        y = perc_range
+        x = gsd
+        if label_axes != False:
+            ax.set_xlabel('Grain Size ( '+str(units)+')')
+            ax.set_ylabel('Fraction smaller')
+    elif orientation == 'horizontal':
+        ymax = length_max
+        ymin = 0
+        xmax = np.max(perc_range)
+        xmin = np.min(perc_range)
+        x = perc_range
+        y = gsd 
+        if label_axes != False:
+            ax.set_xlabel('Grain Size ( '+str(units)+')')
+            ax.set_ylabel('Fraction smaller')
+    if not gsd_id:
+            ax.plot(x,y,color=color,linewidth=lw)
+    else:
+            ax.plot(x,y,color=color,label=gsd_id,linewidth=lw)
+    ax.set_ylim(ymin,ymax)
+    ax.set_xlim(xmin,xmax)
 
-        plt.tight_layout()
+    if title:
+            ax.set_title(title,fontsize=8)
+
+    fig.tight_layout()
 
 def plot_gsd_uncert(uncert_res,perc_range=np.arange(0.01,1.01,0.01),color='k',uncert_area=True,uncert_bounds=False,uncert_median=False,orientation='vertical'):
     uci,lci,med = uncert_res[1],uncert_res[2],uncert_res[0]
