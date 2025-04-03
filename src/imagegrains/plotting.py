@@ -58,7 +58,7 @@ def AP_IoU_plot(eval_results,labels=True,
     else:
         fig = ax.figure
     
-    res_l= [[] for x in range(len(thresholds))]
+    '''res_l= [[] for x in range(len(thresholds))]
     for i  in range(len(eval_results)):
         for j in range(len(thresholds)):
             o = eval_results[i]['ap'][j]
@@ -67,7 +67,13 @@ def AP_IoU_plot(eval_results,labels=True,
     for m in range(len(res_l)):
         avg_l.append(np.mean(res_l[m]))
         std_ul.append(np.mean(res_l[m])+np.std(res_l[m]))
-        std_ll.append(np.mean(res_l[m])-np.std(res_l[m]))
+        std_ll.append(np.mean(res_l[m])-np.std(res_l[m]))'''
+    
+    all_ap = np.stack([x['ap'] for x in eval_results.values()])
+    avg_l = np.mean(all_ap, axis=0)
+    std_l = np.std(all_ap, axis=0)
+    std_ul = avg_l + std_l
+    std_ll = avg_l - std_l
     
     for i  in range(len(eval_results)):
         if test_idxs:
