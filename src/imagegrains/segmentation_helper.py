@@ -483,7 +483,7 @@ def combine_2D(preds_small,preds_large,imgs,tar_dir='',model_id='',filters=None,
                 print(file_id)
     return 
 
-def eval_image(y_true,y_pred,thresholds = [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1]):
+def eval_image(y_true,y_pred,thresholds = [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9]):
     """
     Evaluates a single image. Uses cellpose.metrics (https://cellpose.readthedocs.io/en/latest/api.html#module-cellpose.metrics).
     
@@ -509,7 +509,7 @@ def eval_image(y_true,y_pred,thresholds = [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8,
     #f1 = f1_score(y_true,y_pred,average="macro")
     return ap, tp, fp, fn, iout, preds
 
-def eval_set(imgs,lbls,preds,data_id='',tar_dir='',thresholds = [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1],
+def eval_set(imgs,lbls,preds,data_id='',tar_dir='',thresholds = [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9],
     filters={'edge':[False,.05],'px_cutoff':[False,10]},filter_props=['label','area','centroid','major_axis_length','minor_axis_length'],
     save_results=True,return_results=True,return_test_idx=False,mute=True):
     """
@@ -730,7 +730,7 @@ def get_style_vectors(do_inference=True, tar_dir='', model='default', im_paths=N
         pkl_file.close()
     return train_styles, trainnames, trainpaths, test_styles, testnames,testpaths
 
-def keep_tif_crs(imgs,preds):
+def keep_tif_crs(imgs,preds,mute=True):
     try: 
         from osgeo import gdal
         gdal.UseExceptions()
@@ -752,8 +752,10 @@ def keep_tif_crs(imgs,preds):
                 dataset = None
                 dataset2 = None
         except:
-            print('>> Georeference of tif/tiff files incomplete. Predictions might not be correctly referenced.')
+            if mute == False:
+                print('>> Georeference of tif/tiff files incomplete. Predictions might not be correctly referenced.')
             pass
     except ModuleNotFoundError:
-        print('>> GDAL not installed. Please install GDAL to keep CRS info for GeoTIFF files.')
+        if mute == False:
+            print('>> GDAL not installed. Please install GDAL to keep CRS info for GeoTIFF files.')
         pass
