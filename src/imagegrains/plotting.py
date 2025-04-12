@@ -522,28 +522,34 @@ def plot_gsd(gsd,color='c', perc_range=np.arange(0.01,1.01,0.01), length_max=300
 
     fig.tight_layout()
 
-def plot_gsd_uncert(uncert_res,perc_range=np.arange(0.01,1.01,0.01),color='k',uncert_area=True,uncert_bounds=False,uncert_median=False,orientation='vertical'):
+def plot_gsd_uncert(uncert_res,perc_range=np.arange(0.01,1.01,0.01),color='k',
+                    uncert_area=True,uncert_bounds=False,uncert_median=False,
+                    orientation='vertical', ax=None):
+    
+    if ax is None:
+        ax = plt.gca()
+
     uci,lci,med = uncert_res[1],uncert_res[2],uncert_res[0]
     if not any(uci):
          pass
     else:
         if orientation == 'vertical':
             if uncert_area == True:
-                plt.fill_betweenx(perc_range,uci,lci,alpha=0.2,color=color)
+                ax.fill_betweenx(perc_range,uci,lci,alpha=0.2,color=color)
             if uncert_median == True:
-                plt.plot(med,perc_range,color=color,linewidth=1)
+                ax.plot(med,perc_range,color=color,linewidth=1)
             if uncert_bounds == True:
-                plt.plot(uci,perc_range,color=color,linewidth=1,linestyle='--')
-                plt.plot(lci,color=color,linewidth=1,linestyle='--')
+                ax.plot(uci,perc_range,color=color,linewidth=1,linestyle='--')
+                ax.plot(lci,color=color,linewidth=1,linestyle='--')
 
         elif orientation == 'horizontal':
             if uncert_area == True:
-                plt.fill_between(perc_range,uci,lci,alpha=0.2,color=color)
+                ax.fill_between(perc_range,uci,lci,alpha=0.2,color=color)
             if uncert_median == True:
-                plt.plot(perc_range,med,color=color,linewidth=1)
+                ax.plot(perc_range,med,color=color,linewidth=1)
             if uncert_bounds == True:
-                plt.plot(perc_range,uci,color=color,linewidth=1,linestyle='--')
-                plt.plot(perc_range,lci,color=color,linewidth=1,linestyle='--')
+                ax.plot(perc_range,uci,color=color,linewidth=1,linestyle='--')
+                ax.plot(perc_range,lci,color=color,linewidth=1,linestyle='--')
 
 def plot_gsd_deltas(uncert_res,gsd,baseline,perc_range=np.arange(0.01,1.01,0.01),color='k',label_axes=True
                     ,uncert_area=True,uncert_bounds=False,uncert_median=False,orientation='horizontal'):
