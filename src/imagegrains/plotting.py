@@ -49,7 +49,7 @@ def eval_plot(img,y_pred,y_true,j_score,f1,ap,_print=False,title_id =''):
     return
 
 def AP_IoU_plot(eval_results,labels=True,
-                thresholds=[0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1],title='',test_idxs=None, ax=None,
+                thresholds=0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9],title='',test_idxs=None, ax=None,
                 fontcolor='black'):    
     
     if ax is None:
@@ -57,17 +57,6 @@ def AP_IoU_plot(eval_results,labels=True,
         ax = fig.add_subplot(111)
     else:
         fig = ax.figure
-    
-    '''res_l= [[] for x in range(len(thresholds))]
-    for i  in range(len(eval_results)):
-        for j in range(len(thresholds)):
-            o = eval_results[i]['ap'][j]
-            res_l[j].append(o)
-    avg_l,std_ul,std_ll =[],[],[]
-    for m in range(len(res_l)):
-        avg_l.append(np.mean(res_l[m]))
-        std_ul.append(np.mean(res_l[m])+np.std(res_l[m]))
-        std_ll.append(np.mean(res_l[m])-np.std(res_l[m]))'''
     
     all_ap = np.stack([x['ap'] for x in eval_results.values()])
     avg_l = np.mean(all_ap, axis=0)
@@ -104,7 +93,7 @@ def AP_IoU_plot(eval_results,labels=True,
     return
 
 def AP_IoU_summary_plot(eval_results_list,elements,test_idx_list =None ,labels=True,
-                        thresholds=[0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1],
+                        thresholds=[0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9],
                         ax=None):    
     """
     eval_results_list: list of eval_results from eval_results_list
