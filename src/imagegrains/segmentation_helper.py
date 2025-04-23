@@ -8,7 +8,7 @@ from tqdm import tqdm
 from glob import glob
 from natsort import natsorted
 from skimage.measure import label, regionprops_table
-from tifffile import imsave
+from tifffile import imwrite
 
 from cellpose import metrics, models, io
 from imagegrains import grainsizing, data_loader, plotting
@@ -444,7 +444,7 @@ def combine_3D(preds_small,preds_large,tar_dir='',model_id='',filters=None,thres
     else:
         data_path = tar_dir
     filename_i = f'{data_path}/{file_id}_{model_id}_combined_pred.tif'
-    imsave(filename_i, new_stack)
+    imwrite(filename_i, new_stack)
     return
 
 def combine_2D(preds_small,preds_large,imgs,tar_dir='',model_id='',filters=None,threshold=150,mute=True,
