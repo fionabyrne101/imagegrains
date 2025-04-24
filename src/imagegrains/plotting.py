@@ -49,47 +49,52 @@ def eval_plot(img,y_pred,y_true,j_score,f1,ap,_print=False,title_id =''):
     return
 
 def AP_IoU_plot(eval_results,labels=True,
-                thresholds=[0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9],title='',test_idxs=None):    
-    res_l= [[] for x in range(len(thresholds))]
-    for i  in range(len(eval_results)):
-        for j in range(len(thresholds)):
-            o = eval_results[i]['ap'][j]
-            res_l[j].append(o)
-    avg_l,std_ul,std_ll =[],[],[]
-    for m in range(len(res_l)):
-        avg_l.append(np.mean(res_l[m]))
-        std_ul.append(np.mean(res_l[m])+np.std(res_l[m]))
-        std_ll.append(np.mean(res_l[m])-np.std(res_l[m]))
+                thresholds=0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9],title='',test_idxs=None, ax=None,
+                fontcolor='black'):    
+    
+    if ax is None:
+        fig = plt.gcf()
+        ax = fig.add_subplot(111)
+    else:
+        fig = ax.figure
+    
+    all_ap = np.stack([x['ap'] for x in eval_results.values()])
+    avg_l = np.mean(all_ap, axis=0)
+    std_l = np.std(all_ap, axis=0)
+    std_ul = avg_l + std_l
+    std_ll = avg_l - std_l
     
     for i  in range(len(eval_results)):
         if test_idxs:
             if i in test_idxs and i == 0:
-                plt.plot(thresholds,eval_results[i]['ap'],'b',label='Test image')
+                ax.plot(thresholds,eval_results[i]['ap'],'b',label='Test image')
             elif i in test_idxs:
-                plt.plot(thresholds,eval_results[i]['ap'],'b')
+                ax.plot(thresholds,eval_results[i]['ap'],'b')
             elif i == len(eval_results)-1:
-                plt.plot(thresholds,eval_results[i]['ap'],'c',alpha=.4,label='Training image')
+                ax.plot(thresholds,eval_results[i]['ap'],'c',alpha=.4,label='Training image')
             else:
-                plt.plot(thresholds,eval_results[i]['ap'],'c',alpha=.4)
+                ax.plot(thresholds,eval_results[i]['ap'],'c',alpha=.4)
         elif not test_idxs and i ==0:
-            plt.plot(thresholds,eval_results[i]['ap'],'c',alpha=.4,label='Single image')
+            ax.plot(thresholds,eval_results[i]['ap'],'c',alpha=.4,label='Single image')
         else:
-            plt.plot(thresholds,eval_results[i]['ap'],'c',alpha=.4)
+            ax.plot(thresholds,eval_results[i]['ap'],'c',alpha=.4)
 
-    plt.plot(thresholds,avg_l,'r',lw=2,label='Dataset avg.')
-    plt.fill_between(thresholds,std_ul,std_ll,color='r',alpha=0.2,label='1 Std. dev.')
-    plt.xlim(np.min(thresholds),np.max(thresholds))
-    plt.ylim(0,1)
+    ax.plot(thresholds,avg_l,'r',lw=2,label='Dataset avg.')
+    ax.fill_between(thresholds,std_ul,std_ll,color='r',alpha=0.2,label='1 Std. dev.')
+    ax.set_xlim(np.min(thresholds),np.max(thresholds))
+    ax.set_ylim(0,1)
     if labels == True:
-        plt.ylabel('Average precision (AP)')
-        plt.xlabel('IoU threshold')
-    plt.title(title)
-    plt.legend()
-    plt.tight_layout()
+        ax.set_ylabel('Average precision (AP)', fontdict={'color': fontcolor})
+        ax.set_xlabel('IoU threshold', fontdict={'color': fontcolor})
+    ax.tick_params(axis='both', colors=fontcolor)
+    ax.set_title(title, fontdict={'color': fontcolor})
+    ax.legend()
+    fig.tight_layout()
     return
 
 def AP_IoU_summary_plot(eval_results_list,elements,test_idx_list =None ,labels=True,
-                        thresholds=[0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9]):    
+                        thresholds=[0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9],
+                        ax=None):    
     """
     eval_results_list: list of eval_results from eval_results_list
     elements: dict with the elements to be plotted: 
@@ -101,6 +106,12 @@ def AP_IoU_summary_plot(eval_results_list,elements,test_idx_list =None ,labels=T
         avg = bool, if True, plots the average AP for the dataset 
     """
     
+    if ax is None:
+        fig = plt.gcf()
+        ax = fig.add_subplot(111)
+    else:
+        fig = ax.figure
+
     for ds in range(len(eval_results_list)):
         res_l= [[] for x in range(len(thresholds))]
         for i  in range(len(eval_results_list[ds])):
@@ -126,21 +137,21 @@ def AP_IoU_summary_plot(eval_results_list,elements,test_idx_list =None ,labels=T
         if elements['images']==True:
             for i  in range(len(eval_results_list[ds])):
                 if i ==0:
-                    plt.plot(thresholds,eval_results_list[ds][i]['ap'],'k',alpha=.1,label='Single image')
+                    ax.plot(thresholds,eval_results_list[ds][i]['ap'],'k',alpha=.1,label='Single image')
                 else:
-                    plt.plot(thresholds,eval_results_list[ds][i]['ap'],color=elements['colors'][ds],alpha=.5)
+                    ax.plot(thresholds,eval_results_list[ds][i]['ap'],color=elements['colors'][ds],alpha=.5)
         if elements['std']==True:
-            plt.fill_between(thresholds,std_ul,std_ll,color=elements['colors'][ds],alpha=0.2)
+            ax.fill_between(thresholds,std_ul,std_ll,color=elements['colors'][ds],alpha=0.2)
         if elements['avg_model']==True:
-            plt.plot(thresholds,avg_l,color=elements['colors'][ds],lw=1.5,label=str(elements['model_id'][ds]))
-    plt.xlim(np.min(thresholds),np.max(thresholds))
-    plt.ylim(0,1)
-    plt.title(str(elements['dataset']))
+            ax.plot(thresholds,avg_l,color=elements['colors'][ds],lw=1.5,label=str(elements['model_id'][ds]))
+    ax.set_xlim(np.min(thresholds),np.max(thresholds))
+    ax.set_ylim(0,1)
+    ax.set_title(str(elements['dataset']))
     if labels == True:
-        plt.ylabel('Average precision (AP)')
-        plt.xlabel('IoU threshold')
-    plt.legend()
-    plt.tight_layout()
+        ax.set_ylabel('Average precision (AP)')
+        ax.set_xlabel('IoU threshold')
+    ax.legend()
+    fig.tight_layout()
     return
     
 def inspect_predictions(imgs,preds,lbls=None,title='',tar_dir='',save_fig=False):
@@ -460,61 +471,74 @@ def ell_from_props(props,_idx=0):
     y = y0 + a/2 * np.cos(phi) * np.sin(-orientation) + b/2 * np.sin(phi) * np.cos(-orientation)
     return(x0,x1,x2,x3,x4,y0,y1,y2,y3,y4,x,y)
         
-def plot_gsd(gsd,color='c', perc_range=np.arange(0.01,1.01,0.01),length_max=300,gsd_id=None,title=None,label_axes=False,lw=.75,orientation='vertical',units='px',alpha=1):
-        if orientation == 'vertical':
-            xmax = length_max
-            xmin = 0
-            ymax= np.max(perc_range)
-            ymin = np.min(perc_range)
-            y = perc_range
-            x = gsd
-            if label_axes != False:
-                plt.xlabel('Grain Size ( '+str(units)+')')
-                plt.ylabel('Fraction smaller')
-        elif orientation == 'horizontal':
-            ymax = length_max
-            ymin = 0
-            xmax = np.max(perc_range)
-            xmin = np.min(perc_range)
-            x = perc_range
-            y = gsd 
-            if label_axes != False:
-                plt.xlabel('Grain Size ( '+str(units)+')')
-                plt.ylabel('Fraction smaller')
-        if not gsd_id:
-                plt.plot(x,y,color=color,linewidth=lw)
-        else:
-                plt.plot(x,y,color=color,label=gsd_id,linewidth=lw)
-        plt.ylim(ymin,ymax)
-        plt.xlim(xmin,xmax)
+def plot_gsd(gsd,color='c', perc_range=np.arange(0.01,1.01,0.01), length_max=300,
+             gsd_id=None, title=None, label_axes=False, lw=.75, orientation='vertical',
+             units='px',alpha=1, ax=None):
+    
+    if ax is None:
+        ax = plt.gca()
+    fig = ax.figure
 
-        if title:
-                plt.title(title,fontsize=8)
+    if orientation == 'vertical':
+        xmax = length_max
+        xmin = 0
+        ymax= np.max(perc_range)
+        ymin = np.min(perc_range)
+        y = perc_range
+        x = gsd
+        if label_axes != False:
+            ax.set_xlabel('Grain Size ( '+str(units)+')')
+            ax.set_ylabel('Fraction smaller')
+    elif orientation == 'horizontal':
+        ymax = length_max
+        ymin = 0
+        xmax = np.max(perc_range)
+        xmin = np.min(perc_range)
+        x = perc_range
+        y = gsd 
+        if label_axes != False:
+            ax.set_xlabel('Grain Size ( '+str(units)+')')
+            ax.set_ylabel('Fraction smaller')
+    if not gsd_id:
+            ax.plot(x,y,color=color,linewidth=lw)
+    else:
+            ax.plot(x,y,color=color,label=gsd_id,linewidth=lw)
+    ax.set_ylim(ymin,ymax)
+    ax.set_xlim(xmin,xmax)
 
-        plt.tight_layout()
+    if title:
+            ax.set_title(title,fontsize=8)
 
-def plot_gsd_uncert(uncert_res,perc_range=np.arange(0.01,1.01,0.01),color='k',uncert_area=True,uncert_bounds=False,uncert_median=False,orientation='vertical'):
+    fig.tight_layout()
+
+def plot_gsd_uncert(uncert_res,perc_range=np.arange(0.01,1.01,0.01),color='k',
+                    uncert_area=True,uncert_bounds=False,uncert_median=False,
+                    orientation='vertical', ax=None):
+    
+    if ax is None:
+        ax = plt.gca()
+
     uci,lci,med = uncert_res[1],uncert_res[2],uncert_res[0]
     if not any(uci):
          pass
     else:
         if orientation == 'vertical':
             if uncert_area == True:
-                plt.fill_betweenx(perc_range,uci,lci,alpha=0.2,color=color)
+                ax.fill_betweenx(perc_range,uci,lci,alpha=0.2,color=color)
             if uncert_median == True:
-                plt.plot(med,perc_range,color=color,linewidth=1)
+                ax.plot(med,perc_range,color=color,linewidth=1)
             if uncert_bounds == True:
-                plt.plot(uci,perc_range,color=color,linewidth=1,linestyle='--')
-                plt.plot(lci,color=color,linewidth=1,linestyle='--')
+                ax.plot(uci,perc_range,color=color,linewidth=1,linestyle='--')
+                ax.plot(lci,color=color,linewidth=1,linestyle='--')
 
         elif orientation == 'horizontal':
             if uncert_area == True:
-                plt.fill_between(perc_range,uci,lci,alpha=0.2,color=color)
+                ax.fill_between(perc_range,uci,lci,alpha=0.2,color=color)
             if uncert_median == True:
-                plt.plot(perc_range,med,color=color,linewidth=1)
+                ax.plot(perc_range,med,color=color,linewidth=1)
             if uncert_bounds == True:
-                plt.plot(perc_range,uci,color=color,linewidth=1,linestyle='--')
-                plt.plot(perc_range,lci,color=color,linewidth=1,linestyle='--')
+                ax.plot(perc_range,uci,color=color,linewidth=1,linestyle='--')
+                ax.plot(perc_range,lci,color=color,linewidth=1,linestyle='--')
 
 def plot_gsd_deltas(uncert_res,gsd,baseline,perc_range=np.arange(0.01,1.01,0.01),color='k',label_axes=True
                     ,uncert_area=True,uncert_bounds=False,uncert_median=False,orientation='horizontal'):
