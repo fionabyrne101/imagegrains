@@ -224,8 +224,9 @@ return_results=False,save_masks=True,mute=False,model_id=''):
                     #filepath = Path(tar_dir) / f'{img_id}_{model_id}_pred.tif'
                     io.imsave(f'{tar_dir}/{img_id}_{model_id}_pred.tif',masks)
                 else:
+                    os.makedirs(f'{image_path}/predictions/',exist_ok=True)
                     #filepath = Path(image_path) / f'{img_id}_{model_id}_pred.tif'
-                    io.imsave(f'{image_path}/{img_id}_{model_id}_pred.tif',masks)
+                    io.imsave(f'{image_path}/predictions/{img_id}_{model_id}_pred.tif',masks)
             if return_results == True:
                 mask_l.append(masks)
                 flow_l.append(flows)
@@ -440,7 +441,8 @@ def combine_3D(preds_small,preds_large,tar_dir='',model_id='',filters=None,thres
         for key in conflict_list:
             new_stack[new_stack == key]=0  #remove entire grain for intersecting preds in 3D
     if tar_dir == '':
-            data_path= Path.cwd().as_posix()
+            data_path= f'{Path.cwd().as_posix()}/predictions/'
+            os.makedirs(data_path,exist_ok=True)
     else:
         data_path = tar_dir
     filename_i = f'{data_path}/{file_id}_{model_id}_combined_pred.tif'
@@ -472,7 +474,8 @@ def combine_2D(preds_small,preds_large,imgs,tar_dir='',model_id='',filters=None,
                 print(f'Could not combine preds for {file_id} due to an empty prediction! Using grains from one inferrence only.')
                 combined = m1
             if tar_dir == '':
-                    data_path=Path(img).parent
+                    data_path=f'{Path(img).parent}/predictions/'
+                    os.makedirs(data_path,exist_ok=True)
             else:
                 data_path = tar_dir
             filename_i = f'{data_path}/{file_id}_{model_id}_combined_pred.tif'
@@ -491,7 +494,7 @@ def eval_image(y_true,y_pred,thresholds = [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8,
     ------------
     y_true (array) - ground truth mask
     y_pred (array) - predicted mask
-    thresholds (list (optional, default=[0.5, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1])) - Thresholds to evaluate at
+    thresholds (list (optional, default=[0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9])) - Thresholds to evaluate at
     
     Returns
     ------------
@@ -522,7 +525,7 @@ def eval_set(imgs,lbls,preds,data_id='',tar_dir='',thresholds = [0.5, 0.55, 0.6,
     preds (list) - List of predictions
     data_id (str (optional, default='')) - ID for the dataset
     tar_dir (str (optional, default='')) - Directory to save results to
-    thresholds (list (optional, default=[0.5, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1])) - Thresholds to evaluate at
+    thresholds (list (optional, default=[0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9])) - Thresholds to evaluate at
     filters (dict (optional, default={'edge':[False,.05],'px_cutoff':[False,10]})) - Dictionary of filters to apply to labels and predictions
     filter_props (list (optional, default=['label','area','centroid','major_axis_length','minor_axis_length'])) - pPoperties to filter on
     save_results (bool (optional, default=True)) - Flag whether to save results to a pkl file

@@ -119,13 +119,13 @@ def main():
     if args.grid_resample or args.random_resample or args.centerpoint_resample:
         resample_path = resampling_step(args,filters,mute=mute,tar_dir=tar_dir)
         resampled = True 
-    
+        print(resample_path)
     #add additional approximation (convh, outl)
     fit_method = args.fit
     mask_str = args.filter_str if args.filter_str else ''
     grain_size_step(img_dir,filters,fit_method=fit_method,mute=mute,tar_dir=tar_dir,mask_str=mask_str)    
     if resampled == True:
-        grain_size_step(resample_path,filters,fit_method=fit_method,mute=True,tar_dir=tar_dir,mask_str=mask_str)
+        grain_size_step(resample_path,filters,fit_method=fit_method,mute=True,tar_dir=tar_dir,mask_str=mask_str,resampled=True)
     
     #optional scaling of grains
     if args.resolution:
@@ -138,7 +138,7 @@ def main():
     gsd_step(img_dir,args,mute=mute,tar_dir=tar_dir)
     if resampled == True:
         print('>> Calculating grain size distributions and uncertainties for ',resample_path)
-        gsd_step(resample_path,args,mute=mute,tar_dir=tar_dir)
+        gsd_step(resample_path,args,mute=mute,tar_dir=tar_dir,resampled=resampled)
 
 
 def segmentation_step(args,mute=False,tar_dir=''):
@@ -231,7 +231,7 @@ def segmentation_step(args,mute=False,tar_dir=''):
                 if tar_dir != '':
                     out_dir = Path(tar_dir)/ f'{model_id}_prediction_examples.png'
                 else:
-                    out_dir = Path(img_dir)/ f'{model_id}_prediction_examples.png'
+                    out_dir = Path(img_dir)/ f'/predictions/{model_id}_prediction_examples.png'
                 pred_plot.savefig(out_dir,dpi=300)
             if do_composites == True:
                 print('>> Saving composite images...')
@@ -243,7 +243,7 @@ def segmentation_step(args,mute=False,tar_dir=''):
                         out_dir2 = Path(tar_dir)
                         os.makedirs(out_dir2,exist_ok=True)
                     else:
-                        out_dir2 = Path(img_dir)
+                        out_dir2 = f'{Path(img_dir)}/predictions/'
                     pred_plot_i.savefig(f'{out_dir2}/{file_id}_{model_id}_composite.png',dpi=300,bbox_inches='tight',pad_inches = 0)
                     plt.clf()
                     plt.close(pred_plot_i)
@@ -294,7 +294,7 @@ def resampling_step(args,filters,mute=False,tar_dir=''):
             #save resampled mask to file
             if not tar_dir:
                 #resampled_dir = args.img_dir+'/Resampled_grains/'
-                resampled_dir = Path(img_dir)/'Resampled_grains/'
+                resampled_dir = Path(img_dir)/'predictions/Resampled_grains/'
                 #io.imsave(resampled_dir + mask_id +f'_{method}_resampled.tif',grid_resampled)
             else:
                 #resampled_dir = tar_dir +'/Resampled_grains/'
@@ -305,13 +305,13 @@ def resampling_step(args,filters,mute=False,tar_dir=''):
             io.imsave(str(filepath),grid_resampled)
     return resampled_dir
 
-def grain_size_step(img_dir,filters,fit_method=None,mute=False,tar_dir='',mask_str=''):
+def grain_size_step(img_dir,filters,fit_method=None,mute=False,tar_dir='',mask_str='',resampled=False):
     if not fit_method:
-        _,_,_ = grainsizing.batch_grainsize(img_dir,filters=filters,mute=True,tar_dir=tar_dir,mask_str=mask_str)
+        _,_,_ = grainsizing.batch_grainsize(img_dir,filters=filters,mute=True,tar_dir=tar_dir,mask_str=mask_str,resampled=resampled)
     else:
         if mute== False:
             print('>> Adding additional approximation for grains: ',fit_method)
-        _,_,_ = grainsizing.batch_grainsize(img_dir,filters=filters,fit_method=fit_method,mute=True,tar_dir=tar_dir,mask_str=mask_str)
+        _,_,_ = grainsizing.batch_grainsize(img_dir,filters=filters,fit_method=fit_method,mute=True,tar_dir=tar_dir,mask_str=mask_str,resampled=resampled)
     return
 
 def scaling_step(img_dir,resolution,mute=False,gsd_str='_grains',tar_dir=''):
@@ -342,7 +342,7 @@ def scaling_step(img_dir,resolution,mute=False,gsd_str='_grains',tar_dir=''):
             print('>> Rescaled grains image-specific resolutions from',resolution,'.')
         return
 
-def gsd_step(file_path,args,mute=False,tar_dir=''):
+def gsd_step(file_path,args,mute=False,tar_dir='',resampled=False):
     grains= data_loader.load_grain_set(file_path,gsd_str='grains_re_scaled')
     scaled = True
     sfm_err = None
@@ -388,8 +388,11 @@ def gsd_step(file_path,args,mute=False,tar_dir=''):
         #out_dir = tar_dir+'/GSD_uncertainty/'
         out_dir = Path(tar_dir)/'GSD_uncertainty/'
     else:
-        #out_dir = file_path + '/GSD_uncertainty/'
-        out_dir = Path(file_path)/'GSD_uncertainty/'
+        if resampled == True:
+            out_dir = Path(file_path)/'GSD_uncertainty/'
+        else:
+            #out_dir = file_path + '/GSD_uncertainty/'
+            out_dir = Path(file_path)/'predictions/GSD_uncertainty/'
     os.makedirs(out_dir,exist_ok=True)
 
     #estimate uncertainty on a column-by-column basis
@@ -427,7 +430,10 @@ def gsd_step(file_path,args,mute=False,tar_dir=''):
             if tar_dir != '':
                 out_dir2 = Path(tar_dir)
             else:
-                out_dir2 = Path(file_path)
+                if resampled == True:
+                    out_dir2 = Path(file_path)
+                else:
+                    out_dir2 = Path(file_path)/'predictions/'
             out_path = out_dir2/f'{axis}_{unit}_{approx}_{method}.csv'
             sum_df.to_csv(out_path,index=False)
             #sum_df.to_csv(f'{out_dir2}/{axis}_{unit}_{approx}_{method}.csv',index=False)

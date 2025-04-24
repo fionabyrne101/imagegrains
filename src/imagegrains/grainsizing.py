@@ -17,7 +17,7 @@ from imagegrains import data_loader
 
 def batch_grainsize(data_dir,mask_format='tif',mask_str='',tar_dir='',filters=None,mute=False,outline_threshold=.5,
 properties=['label','area','orientation','minor_axis_length','major_axis_length','centroid','local_centroid','bbox'],fit_method='',
-return_results=False,save_results=True,do_subfolders=False):
+return_results=False,save_results=True,do_subfolders=False,resampled=False):
     """ Measures grainsizes in a dataset; can contain subfolders `train`,`test`. If do_subfolders is True, the function will also measure grainsizes in any subfolders of data_dir. 
 
     Parameters
@@ -25,7 +25,7 @@ return_results=False,save_results=True,do_subfolders=False):
     data_dir (str, Path) - path to the dataset
     mask_format (str (optional, default ='tif')) - format of the mask images
     mask_str (str (optional, default ='')) - string that is contained in the mask images; e.g., '_mask' for labels, '_pred' for predictions
-    tar_dir (str, Path (optional, default ='')) - path to the target directory
+    tar_dir (str, Path (optional, default ='')) - path to the target directory to store grain size data
     filters (dict (optional, default =None)) - dictionary of filters to apply to the grains
     mute (bool (optional, default =False)) - mute the output
     outline_threshold (float (optional, default =.5)) - Angular tolerance threshold for b-axis detection during outline fitting in °.
@@ -45,11 +45,14 @@ return_results=False,save_results=True,do_subfolders=False):
     res_grains_l,res_props_l,ids_l = [],[],[]
     working_directories = data_loader.assert_work_dirs(data_dir,do_subfolders=do_subfolders)
     for working_directory in working_directories:
-        check_l = natsorted(glob(f'{working_directory}/*.{mask_format}'))
+        #should be improved for next release
+        check_l = natsorted(glob(f'{working_directory}/predictions/*.{mask_format}'))
+        if len(check_l)==0:
+            check_l = natsorted(glob(f'{working_directory}/*.{mask_format}'))
         if len(check_l)>0:
             res_grains_i,res_props_i,ids_i= grains_in_dataset(data_dir=working_directory,mask_format=mask_format,mask_str=mask_str,
             tar_dir=tar_dir,filters=filters,mute=mute,outline_threshold=outline_threshold,properties=properties,fit_method=fit_method,
-            return_results=return_results,save_results=save_results)
+            return_results=return_results,save_results=save_results,resampled=resampled)
             if return_results==True:
                 for grains, props, id in zip(res_grains_i,res_props_i,ids_i):
                     res_grains_l.append(grains)
@@ -62,7 +65,7 @@ return_results=False,save_results=True,do_subfolders=False):
 
 def grains_in_dataset(inp_list=None,data_dir=None,mask_format='tif',mask_str='',tar_dir='',filters=None,mute=False,outline_threshold=.5,
 properties=['label','area','orientation','minor_axis_length','major_axis_length','centroid','local_centroid'],fit_method='',
-return_results=False,save_results=True,image_res=None,set_id=None):
+return_results=False,save_results=True,image_res=None,set_id=None,resampled=False):
     """
     Measures grainsizes in a dataset.
 
@@ -92,6 +95,8 @@ return_results=False,save_results=True,image_res=None,set_id=None):
     if not inp_list:
         #file_list = natsorted(glob(data_dir+'/*'+mask_str+'*.'+mask_format))
         file_list = natsorted(glob(f'{Path(data_dir)}/*{mask_str}*.{mask_format}'))
+        if not file_list:
+            file_list = natsorted(glob(f'{Path(data_dir)}/predictions/*{mask_str}*.{mask_format}'))
     else:
         file_list = inp_list
     if not set_id and not inp_list:
@@ -123,7 +128,12 @@ return_results=False,save_results=True,image_res=None,set_id=None):
                     filepath=Path(f'{Path(tar_dir)}/{file_id}_grains.csv')
                     #props_df.to_csv(tar_dir+'/'+str(file_id)+'_grains.csv')
                 else:
-                    filepath=Path(f'{Path(data_dir)}/{file_id}_grains.csv')
+                    if resampled == True:
+                        out_path= f'{Path(data_dir)}'
+                    else:
+                        out_path= f'{Path(data_dir)}/predictions/'
+                    os.makedirs(out_path,exist_ok=True)
+                    filepath=Path(f'{out_path}/{file_id}_grains.csv')
                     #props_df.to_csv(data_dir+'/'+str(file_id)+'_grains.csv')
                 props_df.to_csv(filepath)
             if return_results ==True:
@@ -990,7 +1000,10 @@ def summary_statistics(files,id_list,res_list=None,res_dict=None,sep=',',unit='m
                         'unit':unit,'axis':axis,'method':method,'grain approximation':approximation},index=[i])], axis=0)
     summary_df = summary_df.round(decimals=2)
     if save_summary:
-        summary_filepath = Path(f'{Path(files[0]).parents[1]}/{data_id}_summary_{method}_{approximation}.csv')
+        if any(x in str(Path(files[0]).as_posix()) for x in ['train','test']):
+            summary_filepath = Path(f'{Path(files[0]).parents[2]}/{data_id}_summary_{method}_{approximation}.csv')
+        else:    
+            summary_filepath = Path(f'{Path(files[0]).parents[0]}/{data_id}_summary_{method}_{approximation}.csv')
         summary_df.to_csv(summary_filepath,sep=',',index=False)
         #summary_df.to_csv(str(Path(files[0]).parents[1])+'/'+str(data_id)+'_summary_'+method+'_'+approximation+'.csv',sep=',',index=False)
     return summary_df

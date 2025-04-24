@@ -171,11 +171,18 @@ def dataset_loader(image_directories,image_format='jpg',label_format='tif',pred_
             if 'train' in dir:
                 #image_directory += [str(image_directories+'/train/')]
                 image_directory += [f'{Path(image_directories)}/train/']
+            if 'predictions' in dir:
+                image_directory += [f'{Path(image_directories)}/predictions/']
         for dir in image_directory:
             imgs1,lbls1,preds1 = load_from_folders(dir,image_format=image_format,label_format=label_format,pred_format=pred_format,label_str=label_str,pred_str=pred_str)
             imgs += imgs1
             lbls += lbls1
             preds += preds1
+            if not imgs:
+                image_directory = image_directories
+                imgs1,lbls1,preds1 = load_from_folders(image_directory,image_format=image_format,label_format=label_format,pred_format=pred_format,label_str=label_str,pred_str=pred_str)
+                imgs += imgs1
+                lbls += lbls1
     if not image_directory:
         image_directory = image_directories
         imgs1,lbls1,preds1 = load_from_folders(image_directory,image_format=image_format,label_format=label_format,pred_format=pred_format,label_str=label_str,pred_str=pred_str)
@@ -219,6 +226,8 @@ def load_from_folders(image_directory,label_directory='',pred_directory='',image
     else:
         #preds = natsorted(glob(image_directory+'/*'+pred_str+'*.'+pred_format))
         preds = natsorted(glob(f'{image_directory}/*{pred_str}*.{pred_format}'))
+        if not preds:
+            preds = natsorted(glob(f'{image_directory}/predictions/*{pred_str}*.{pred_format}'))
     imgs = natsorted(glob(f'{image_directory}/*.{image_format}'))
     if not any(imgs) and not any(preds) and not any(lbls):
         print('Could not load any images and/or masks.')
@@ -294,12 +303,18 @@ def load_grain_set(file_dir,gsd_format='csv',gsd_str='grains'):
             for dir in dirs:
                 if 'test' in dir:
                         #active_file_dir += [str(file_dir+'/test/')]
-                        active_file_dir += [f'{Path(file_dir)}/test/']
+                        active_file_dir += [f'{Path(file_dir)}/test/predictions/']
                 if 'train' in dir:
                         #active_file_dir += [str(file_dir+'/train/')]
-                        active_file_dir += [f'{Path(file_dir)}/train/']
+                        active_file_dir += [f'{Path(file_dir)}/train/predictions/']
+                if 'predictions' in dir:
+                        active_file_dir += [f'{Path(file_dir)}/predictions/']
             for path in active_file_dir:
-                gsds += gsds_from_folder(path,gsd_format=gsd_format,gsd_str=gsd_str) 
+                gsds += gsds_from_folder(path,gsd_format=gsd_format,gsd_str=gsd_str)
+                if not gsds:
+                    active_file_dir = [file_dir]
+                    for path in active_file_dir:
+                        gsds += gsds_from_folder(path,gsd_format=gsd_format,gsd_str=gsd_str)
         if not active_file_dir:
             gsds=[]
             active_file_dir = [file_dir]
@@ -335,6 +350,8 @@ def read_set_unc(file_path,unc_str='_perc_uncert',file_format='txt'):
         if 'train' in dirs:
             #active_file_dir += [str(file_path+'/train/')]
             active_file_dir = [f'{Path(file_path)}/train/']
+        if 'predictions' in dirs:
+            active_file_dir = [f'{Path(file_path)}/predictions/']
     if not active_file_dir:
         active_file_dir = [Path(file_path)]
     mcs,ids=[],[]
