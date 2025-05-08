@@ -49,7 +49,7 @@ def eval_plot(img,y_pred,y_true,j_score,f1,ap,_print=False,title_id =''):
     return
 
 def AP_IoU_plot(eval_results,labels=True,
-                thresholds=0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9],title='',test_idxs=None, ax=None,
+                thresholds=[0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9],title='',test_idxs=None, ax=None,
                 fontcolor='black'):    
     
     if ax is None:
