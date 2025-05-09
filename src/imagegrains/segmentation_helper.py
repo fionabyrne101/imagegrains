@@ -16,7 +16,7 @@ from tifffile import imwrite
 from cellpose import metrics, models, io
 from imagegrains import grainsizing, data_loader, plotting
 
-def check_labels(labels,tar_dir='',lbl_str='_mask',mask_format='tif'):
+def check_labels(labels,tar_dir='', lbl_str='_mask', mask_format='tif'):
     """
     This function checks if the labels are in the correct format. If not, it renames the labels to the correct format.
     The labels are renamed to the format: <image_ID><lbl_str>.<mask_format>
@@ -53,7 +53,7 @@ def check_labels(labels,tar_dir='',lbl_str='_mask',mask_format='tif'):
         print('No files renamed.')
     return track_l
 
-def check_im_label_pairs(img_list,lbl_list):
+def check_im_label_pairs(img_list, lbl_list):
     """
     This function checks if the images and labels are paired correctly. If not, it returns a list of images for which the labels are missing.	
 
@@ -203,9 +203,9 @@ def predict_single_image(image_path, model,channels=[0,0], diameter=None,
         return None
 
 def predict_folder(image_path, model, image_format='jpg', filter_str='',
-                   channels=[0,0], diameter=None,min_size=15,rescale=None,
+                   channels=[0,0], diameter=None, min_size=15, rescale=None,
                    config=None,tar_dir='', return_results=False, save_masks=True,
-                   mute=False,model_id=''):
+                   mute=False, model_id=''):
     """
     This function takes in a directory containing images, and uses a pre-trained model to predict segmentation masks for the images.
     If `return_results` is `True` respective lists of 1D arrays for predicted *masks*, *flows* and *styles* 
@@ -283,8 +283,10 @@ def predict_folder(image_path, model, image_format='jpg', filter_str='',
         print('Aborted.')
     return mask_l, flow_l, styles_l, id_list, img_l
 
-def predict_dataset(image_path,model,image_format='jpg',channels=[0,0],diameter=None,min_size=15,rescale=None,config=None,tar_dir='',
-return_results=False,save_masks=True,mute=False,do_subfolders=False,model_id=''):
+def predict_dataset(image_path, model,image_format='jpg', channels=[0,0],
+                    diameter=None, min_size=15, rescale=None, config=None, tar_dir='',
+                    return_results=False, save_masks=True, mute=False,
+                    do_subfolders=False, model_id=''):
     """
     Wrapper for helper.prediction.predict_folder() for a dataset that is organised in subfolders (e.g., in directories named `train`,`test`)
 
@@ -336,7 +338,7 @@ return_results=False,save_masks=True,mute=False,do_subfolders=False,model_id='')
     
     return mask_ll,flow_ll,styles_ll,list_of_id_lists
 
-def models_from_zoo(model_dir,use_GPU=True):
+def models_from_zoo(model_dir, use_GPU=True):
     """
     Loads pre-trained cellpose model(s) from a folder.
 
@@ -360,8 +362,10 @@ def models_from_zoo(model_dir,use_GPU=True):
     #model_id_list = [model_list[i].split('\\')[len(model_list[i].split('\\'))-1].split('.')[0] for i in range(len(model_list))]
     return model_list,model_id_list
 
-def batch_predict(model_dir,dir_paths,configuration=None,image_format='jpg',use_GPU=True,channels=[0,0],diameter=None,min_size=15,
-rescale=None,tar_dir='',return_results=False,save_masks=True,mute=False,do_subfolders=False):
+def batch_predict(model_dir, dir_paths, configuration=None, image_format='jpg',
+                  use_GPU=True, channels=[0,0], diameter=None, min_size=15,
+                  rescale=None, tar_dir='', return_results=False, save_masks=True,
+                  mute=False, do_subfolders=False):
     """
     Wrapper for helper.prediction.predict_dataset() that can do predictions on the same dataset for multiple models from a directory (`model_dir`).
 
@@ -424,8 +428,14 @@ rescale=None,tar_dir='',return_results=False,save_masks=True,mute=False,do_subfo
                 all_results[f'{model_id}_{d_idx}']=dataset_res
     return all_results
 
-def combine_preds(preds_small,preds_large,imgs,tar_dir='',model_id='',filters=None,threshold=None,mute=True,
-                  do_composites=True,remove_intersecting=False,stack_3D=False,file_name=''):
+def combine_preds(preds_small, preds_large, imgs,tar_dir='', model_id='',
+                  filters=None, threshold=None, mute=True, do_composites=True,
+                  remove_intersecting=False, stack_3D=False, file_name=''):
+    """
+    Combines predictions from two models (small and large) into one mask.
+
+    """
+
     if tar_dir != '':
         os.makedirs(tar_dir,exist_ok=True)
     if stack_3D==False:    
@@ -441,8 +451,12 @@ def combine_preds(preds_small,preds_large,imgs,tar_dir='',model_id='',filters=No
                   do_composites=do_composites,remove_intersecting=remove_intersecting)
     return
 
-def combine_3D(preds_small,preds_large,tar_dir='',model_id='',filters=None,threshold=None,mute=True,
-                  remove_intersecting=False,file_name=''):
+def combine_3D(preds_small, preds_large, tar_dir='', model_id='', filters=None,
+               threshold=None, mute=True, remove_intersecting=False, file_name=''):
+    """
+    Combines predictions from two models (small and large) into one mask in 3D.
+    """
+
     if type(preds_small) != np.ndarray:
         print('No Numpy.ndarray passed - cannot do 3D!')
         return
@@ -492,8 +506,13 @@ def combine_3D(preds_small,preds_large,tar_dir='',model_id='',filters=None,thres
     imwrite(filename_i, new_stack)
     return
 
-def combine_2D(preds_small,preds_large,imgs,tar_dir='',model_id='',filters=None,threshold=150,mute=True,
-                  do_composites=True,remove_intersecting=False):
+def combine_2D(preds_small, preds_large, imgs,tar_dir='', model_id='',
+               filters=None, threshold=150, mute=True, do_composites=True,
+               remove_intersecting=False):
+    """
+    Combines predictions from two models (small and large) into one mask in 2D.
+    """
+
     for p_1,p_2,img in tqdm(zip(preds_small,preds_large,imgs),unit='image'):
         #load preds for small grains
             masks1 = io.imread(p_1)
@@ -529,7 +548,7 @@ def combine_2D(preds_small,preds_large,imgs,tar_dir='',model_id='',filters=None,
                 print(file_id)
     return 
 
-def eval_image(y_true,y_pred,thresholds = [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9]):
+def eval_image(y_true, y_pred, thresholds=[0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9]):
     """
     Evaluates a single image. Uses cellpose.metrics (https://cellpose.readthedocs.io/en/latest/api.html#module-cellpose.metrics).
     
@@ -555,17 +574,19 @@ def eval_image(y_true,y_pred,thresholds = [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8,
     #f1 = f1_score(y_true,y_pred,average="macro")
     return ap, tp, fp, fn, iout, preds
 
-def eval_set(imgs,lbls,preds,data_id='',tar_dir='',thresholds = [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9],
-    filters={'edge':[False,.05],'px_cutoff':[False,10]},filter_props=['label','area','centroid','major_axis_length','minor_axis_length'],
-    save_results=True,return_results=True,return_test_idx=False,mute=True):
+def eval_set(imgs, lbls, preds, data_id='', tar_dir='',
+             thresholds = [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9],
+             filters={'edge':[False,.05],'px_cutoff':[False,10]},
+             filter_props=['label','area','centroid','major_axis_length','minor_axis_length'],
+             save_results=True, return_results=True, return_test_idx=False, mute=True):
     """
     Evaluates a set of images with eval_image. Saves results to a pkl file.
 
     Parameters:
     ------------
-    imgs (list) - List of images
-    lbls (list) - List of labels
-    preds (list) - List of predictions
+    imgs (list) - List of images paths
+    lbls (list) - List of labels paths
+    preds (list) - List of predictions paths
     data_id (str (optional, default='')) - ID for the dataset
     tar_dir (str (optional, default='')) - Directory to save results to
     thresholds (list (optional, default=[0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9])) - Thresholds to evaluate at
@@ -619,7 +640,8 @@ def eval_set(imgs,lbls,preds,data_id='',tar_dir='',thresholds = [0.5, 0.55, 0.6,
     if return_results == True:
         return eval_results
     
-def eval_wrapper(pred_list,imgs,filterstrings,taglist,filters=None,save_results=True,m_string='_mask',dataset='',out_path=''):
+def eval_wrapper(pred_list, imgs, filterstrings, taglist, filters=None,
+                 save_results=True, m_string='_mask',dataset='', out_path=''):
     """ 
     Wrapper for eval_set to evaluate multiple predictions on the same dataset
     """
@@ -634,9 +656,21 @@ def eval_wrapper(pred_list,imgs,filterstrings,taglist,filters=None,save_results=
         preds_fil_sort_list.append(preds_fil_sort)
     return res_list, tt_list, preds_fil_sort_list
 
-def map_preds_to_imgs(preds,imgs,p_string='',m_string=''):
+def map_preds_to_imgs(preds, imgs, p_string='', m_string=''):
     """ 
     Match predictions to images/labels based on the file name.
+
+    Parameters:
+    ------------
+    preds (list) - List of predictions paths
+    imgs (list) - List of images paths
+    p_string (str (optional, default='')) - String to split the prediction file name
+    m_string (str (optional, default='')) - String to split the image file name
+
+    Returns
+    ------------
+    new_preds (list) - List of matched predictions paths
+
     """
     new_preds = []
     for kk in range(len(imgs)):
@@ -656,13 +690,25 @@ def map_preds_to_imgs(preds,imgs,p_string='',m_string=''):
     return new_preds
 
 def find_test_idxs(lbls):
+    """
+    Find the indices of the test images in the list of labels.
+
+    Parameters:
+    ------------
+    lbls (list) - List of labels paths
+    
+    Return
+    ------------
+    test_idxs (list) - List of indices of the test images
+
+    """ 
     test_idxs = []
     for idx, x in enumerate(lbls):
         if 'test' in x:
             test_idxs.append(idx)
     return test_idxs
 
-def map_res_to_imgs(res_dict,imgs):
+def map_res_to_imgs(res_dict, imgs):
     """
     Match results to images based on the file name.
     """
@@ -674,7 +720,22 @@ def map_res_to_imgs(res_dict,imgs):
                 new_res[kk] = res_dict[k]
     return new_res
 
-def get_stats_for_res(preds,res_dict,test_idxs=None):
+def get_stats_for_res(preds, res_dict, test_idxs=None):
+    """
+    Get average precision stats.
+
+    Parameters:
+    ------------
+    preds (list) - List of predictions paths
+    res_dict (dict) - Dictionary of evaluation results
+    test_idxs (list (optional, default=None)) - ?
+
+    Returns
+    ------------
+    res_stats (list) - List of average precision stats
+
+    """
+
     tpreds, taps50, tamaps = [],[],[]
     ttpreds, ttaps50, ttamaps = [],[],[]
     for i in range(len(preds)):
@@ -699,7 +760,12 @@ def get_stats_for_res(preds,res_dict,test_idxs=None):
                   np.sum(ttpreds),np.mean(ttaps50),np.std(ttaps50),np.mean(ttamaps),np.std(ttamaps)]
     return res_stats
 
-def get_stats_for_run(pred_list,res_list,titles,p_string_list,labels,test_idxs_list=None):
+def get_stats_for_run(pred_list, res_list, titles,
+                      p_string_list, labels, test_idxs_list=None):
+    """
+    Use to define.
+    """
+
     cols = ['model','n_pred_test','mAP50_test','std','mAP50_90_test','std','n_pred_train','mAP50_train','std','mAP50_90_train','std']
     res_stats = pd.DataFrame(columns=cols)
     for j in range(len(pred_list)):
@@ -711,7 +777,11 @@ def get_stats_for_run(pred_list,res_list,titles,p_string_list,labels,test_idxs_l
         res_stats.loc[j] = [titles[j]]+entry
     return res_stats
 
-def get_style_vectors(do_inference=True, tar_dir='', model='default', im_paths=None, mute = True,res_file=None):
+def get_style_vectors(do_inference=True, tar_dir='', model='default',
+                      im_paths=None, mute = True,res_file=None):
+    """
+    Use to define.
+    """
     if model == 'default':
         homepath = Path.home().joinpath('imagegrains')
         model = f'{homepath}/models/full_set_1.170223'
@@ -776,7 +846,18 @@ def get_style_vectors(do_inference=True, tar_dir='', model='default', im_paths=N
         pkl_file.close()
     return train_styles, trainnames, trainpaths, test_styles, testnames,testpaths
 
-def keep_tif_crs(imgs,preds,mute=True):
+def keep_tif_crs(imgs, preds, mute=True):
+    """
+    Keep the coordinate reference system (CRS) of the original image when saving the predictions.
+    This is done by copying the tfw file and the georeference from the original image to the prediction.
+    
+    Parameters:
+    ------------
+    imgs (list) - List of images paths
+    preds (list) - List of predictions paths
+    mute (bool (optional, default=True)) - Flag for muting console output
+    
+    """
     try: 
         from osgeo import gdal
         gdal.UseExceptions()
