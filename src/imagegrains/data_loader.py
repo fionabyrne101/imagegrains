@@ -6,6 +6,18 @@ from natsort import natsorted
 import urllib.request
 
 def download_files(tar_path = None):
+    """
+    Downloads the demo data and notebooks from the imagegrains repository.
+    
+    Parameters:
+    ------------
+    tar_path (str, Path (optional, default None)) - Path to the directory where the files should be downloaded. If None, the files will be downloaded to the home directory.
+    
+    Returns:
+    ------------
+    homepath (str) - Path to the directory where the files were downloaded.
+    """
+
     if not tar_path:
         homepath = Path.home().joinpath('imagegrains')
     else:
@@ -66,7 +78,7 @@ def download_files(tar_path = None):
             continue
     return Path(homepath).as_posix()
 
-def find_data(image_path,mask_str='mask',im_str='',im_format='jpg',mask_format='tif'):
+def find_data(image_path, mask_str='mask', im_str='', im_format='jpg', mask_format='tif'):
     """
     This function loads images and masks from a directory. The directory can contain a 'train' and 'test' subfolder.
 
@@ -110,7 +122,7 @@ def find_data(image_path,mask_str='mask',im_str='',im_format='jpg',mask_format='
                 train_masks = find_imgs_masks(working_directory,format=mask_format,filter_str=mask_str)
     return train_images,train_masks,test_images,test_masks
 
-def find_imgs_masks(image_path,format='',filter_str=''):
+def find_imgs_masks(image_path, format='', filter_str=''):
     """
     This function loads images and masks from a directory.
 
@@ -129,7 +141,8 @@ def find_imgs_masks(image_path,format='',filter_str=''):
     #ret_list = natsorted(glob(image_path+'/*'+filter_str+'*.'+format))
     return ret_list
 
-def dataset_loader(image_directories,image_format='jpg',label_format='tif',pred_format='tif',label_str='',pred_str=''):
+def dataset_loader(image_directories, image_format='jpg', label_format='tif',
+                   pred_format='tif', label_str='', pred_str=''):
     """
     Loads images, labels, and predictions from a folder or list of folders.
 
@@ -192,7 +205,9 @@ def dataset_loader(image_directories,image_format='jpg',label_format='tif',pred_
     
     return imgs,lbls,preds
 
-def load_from_folders(image_directory,label_directory='',pred_directory='',image_format='jpg',label_format='tif',pred_format='tif',label_str='',pred_str=''):
+def load_from_folders(image_directory, label_directory='', pred_directory='',
+                      image_format='jpg', label_format='tif', pred_format='tif',
+                      label_str='', pred_str=''):
     """
     Loads images, labels, and predictions from separate folders.
 
@@ -233,7 +248,7 @@ def load_from_folders(image_directory,label_directory='',pred_directory='',image
         print('Could not load any images and/or masks.')
     return imgs,lbls,preds
 
-def assert_work_dirs(data_dir,do_subfolders=False):
+def assert_work_dirs(data_dir, do_subfolders=False):
     working_directories = []
     try:
         dirs = next(os.walk(Path(data_dir)))[1]
@@ -252,7 +267,7 @@ def assert_work_dirs(data_dir,do_subfolders=False):
             working_directories= [Path(data_dir)]
     return working_directories
 
-def load_eval_res(name,file_path=''):
+def load_eval_res(name, file_path=''):
     """
     Loads evaluation results from a pkl file.
     
@@ -270,73 +285,112 @@ def load_eval_res(name,file_path=''):
         eval_results = pickle.load(f)
     return eval_results
 
-def load_grain_set(file_dir,gsd_format='csv',gsd_str='grains'):
-        """
-        Loads a grain size distributions from a directory.
+def load_grain_set(file_dir, gsd_format='csv', gsd_str='grains'):
+    """
+    Loads a grain size distributions from a directory.
 
-        Parameters
-        ----------
-        file_dir (str, Path) - directory of the grain size distributions
-        gsd_format (str (optional, default = 'csv')) - format of the grain size distributions
-        gsd_str (str (optional, default = 'grains')) - string to filter the grain size distributions
+    Parameters
+    ----------
+    file_dir (str, Path) - directory of the grain size distributions
+    gsd_format (str (optional, default = 'csv')) - format of the grain size distributions
+    gsd_str (str (optional, default = 'grains')) - string to filter the grain size distributions
 
-        Returns
-        -------
-        gsds (list) - list of grain size distributions
-                
-        """
-        if type(file_dir) == list:
-            dirs = []
-            for x in range(len(file_dir)):
-                try:
-                    dirs += next(os.walk(Path(file_dir[x])))[1]
-                except StopIteration:
-                    continue
-        else:
+    Returns
+    -------
+    gsds (list) - list of grain size distributions
+            
+    """
+    if type(file_dir) == list:
+        dirs = []
+        for x in range(len(file_dir)):
             try:
-                dirs = next(os.walk(Path(file_dir)))[1]
+                dirs += next(os.walk(Path(file_dir[x])))[1]
             except StopIteration:
-                dirs=[]
-        active_file_dir = []
-        if dirs:
-            gsds=[]
-            for dir in dirs:
-                if 'test' in dir:
-                        #active_file_dir += [str(file_dir+'/test/')]
-                        active_file_dir += [f'{Path(file_dir)}/test/predictions/']
-                if 'train' in dir:
-                        #active_file_dir += [str(file_dir+'/train/')]
-                        active_file_dir += [f'{Path(file_dir)}/train/predictions/']
-                if 'predictions' in dir:
-                        active_file_dir += [f'{Path(file_dir)}/predictions/']
-            for path in active_file_dir:
-                gsds += gsds_from_folder(path,gsd_format=gsd_format,gsd_str=gsd_str)
-                if not gsds:
-                    active_file_dir = [file_dir]
-                    for path in active_file_dir:
-                        gsds += gsds_from_folder(path,gsd_format=gsd_format,gsd_str=gsd_str)
-        if not active_file_dir:
-            gsds=[]
-            active_file_dir = [file_dir]
-            for path in active_file_dir:
-                gsds += gsds_from_folder(path,gsd_format=gsd_format,gsd_str=gsd_str)
-        return gsds
+                continue
+    else:
+        try:
+            dirs = next(os.walk(Path(file_dir)))[1]
+        except StopIteration:
+            dirs=[]
+    active_file_dir = []
+    if dirs:
+        gsds=[]
+        for dir in dirs:
+            if 'test' in dir:
+                    #active_file_dir += [str(file_dir+'/test/')]
+                    active_file_dir += [f'{Path(file_dir)}/test/predictions/']
+            if 'train' in dir:
+                    #active_file_dir += [str(file_dir+'/train/')]
+                    active_file_dir += [f'{Path(file_dir)}/train/predictions/']
+            if 'predictions' in dir:
+                    active_file_dir += [f'{Path(file_dir)}/predictions/']
+        for path in active_file_dir:
+            gsds += gsds_from_folder(path,gsd_format=gsd_format,gsd_str=gsd_str)
+            if not gsds:
+                active_file_dir = [file_dir]
+                for path in active_file_dir:
+                    gsds += gsds_from_folder(path,gsd_format=gsd_format,gsd_str=gsd_str)
+    if not active_file_dir:
+        gsds=[]
+        active_file_dir = [file_dir]
+        for path in active_file_dir:
+            gsds += gsds_from_folder(path,gsd_format=gsd_format,gsd_str=gsd_str)
+    return gsds
 
-def read_grains(file_path,sep=',',column_name='ell: b-axis (px)'):
+def read_grains(file_path, sep=',', column_name='ell: b-axis (px)'):
+    """
+    Reads a grain size distribution file and returns the grain sizes.
+
+    Parameters
+    ------------
+    file_path (str, Path) - Path to the grain size distribution file
+    sep (str (optional, default=',')) - Separator used in the file
+    column_name (str (optional, default='ell: b-axis (px)')) - Name of the column containing the grain sizes
+
+    Returns
+    ------------
+    grains (numpy array) - Array of grain sizes
+    """
+
     df = pd.read_csv(Path(file_path),sep=sep)
     grains = df[column_name].values
     return grains
     
-def gsds_from_folder(file_path,gsd_format='csv',gsd_str='grains'):
+def gsds_from_folder(file_path, gsd_format='csv', gsd_str='grains'):
+    """
+    Find grain size files in a folder.
+    
+    Parameters
+    ------------
+    file_path (str, Path) - Path to the folder containing the grain size distributions
+    gsd_format (str (optional, default='csv')) - format of the grain size distributions
+    gsd_str (str (optional, default='grains')) - string to filter the grain size distributions
+    
+    Returns
+    ------------
+    gsds (list) - list of grain size distributions files
+    """
+
     #gsds_raw = natsorted(glob(file_path+'/*'+gsd_str+'*.'+gsd_format))
     gsds_raw = natsorted(glob(f'{Path(file_path)}/*{gsd_str}*.{gsd_format}'))
     gsds = []
     [gsds.append(gsd) for gsd in gsds_raw]
     return gsds
 
-def read_set_unc(file_path,unc_str='_perc_uncert',file_format='txt'):
+def read_set_unc(file_path, unc_str='_perc_uncert', file_format='txt'):
     """
     Returns a filtered list of all uncertainty files and a list of all IDs.
+
+    Parameters
+    ------------
+    file_path (str, Path) - Path to the folder containing the uncertainty files
+    unc_str (str (optional, default='_perc_uncert')) - A string used to filter the uncertainty files in `file_path`
+    file_format (str (optional, default='txt')) - The file format of the uncertainty files
+    
+    Returns
+    ------------
+    mcs (list) - list of uncertainty files
+    ids (list) - list of IDs (file names) for the uncertainty files
     """
     try:
         dirs = next(os.walk(Path(file_path)))[1]
@@ -361,12 +415,24 @@ def read_set_unc(file_path,unc_str='_perc_uncert',file_format='txt'):
         id_i = [Path(mc[idx]).stem for idx in range(len(mc))]
         mcs+=mc
         ids+=id_i
-    return mcs,ids
+    return mcs, ids
 
 def read_unc(path,sep=',',file_format='txt'):
     """
     Reads uncertainty file and returns a dataframe.
+
+    Parameters
+    ------------
+    path (str, Path) - Path to the uncertainty file
+    sep (str (optional, default=',')) - Separator used in the file
+    file_format (str (optional, default='txt')) - The file format of the uncertainty file
+
+    Returns
+    ------------
+    df (pandas DataFrame) - Dataframe containing the uncertainty data
+
     """
+
     df = pd.read_csv(Path(path),sep=sep, header=None)
     if file_format == 'txt':
         df = df.T
@@ -375,6 +441,10 @@ def read_unc(path,sep=',',file_format='txt'):
     return df
 
 def get_img_name_for_summary(file_path, imgs = None, p_string= '_full',overwrite = True):
+    """
+    Function needs documentation. Unclear role.
+    """
+
     df = pd.read_csv(Path(file_path))
     imgs_stem = [Path(img).stem for img in imgs]
     imgs_name = [Path(img).name for img in imgs]
