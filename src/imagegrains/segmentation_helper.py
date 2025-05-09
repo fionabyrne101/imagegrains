@@ -1,4 +1,7 @@
-import os,pickle, cv2, shutil
+import os
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+
+import pickle, cv2, shutil
 import numpy as np
 import pandas as pd
 
@@ -140,9 +143,69 @@ def custom_train(image_path, pretrained_model = None,datstring = None,
             print('Training interrupted.')
     if return_model == True:
         return model 
+    
+def predict_single_image(image_path, model,channels=[0,0], diameter=None,
+                         min_size=15, rescale=None, config=None, return_results=False,
+                         mute=False, save_masks=True,tar_dir='',model_id=''):
+    '''
+    Segment one or multiple images with a trained model.
+    '''
 
-def predict_folder(image_path,model,image_format='jpg',filter_str='',channels=[0,0],diameter=None,min_size=15,rescale=None,config=None,tar_dir='',
-return_results=False,save_masks=True,mute=False,model_id=''):
+    if not isinstance(image_path, list):
+        image_path = [str(Path(image_path).as_posix())]
+    else:
+        image_path = [str(Path(x).as_posix()) for x in image_path]
+
+    try:
+        img = [io.imread(str(x)) for x in image_path]
+        img_id = [Path(x).stem for x in image_path]
+        
+        if config:
+            try:
+                eval_str = ''
+                for key,val in config.items():
+                    if not eval_str:
+                        i_str=f'{key}={val}'
+                    else:
+                        i_str=f',{key}={val}'
+                    eval_str+=i_str
+                exec(f'masks, flows, styles = model.eval(img, diameter=diameter,rescale=rescale,min_size=min_size,channels=channels, {eval_str})')
+            except AttributeError:
+                print('Config file is not formatted correctly. Please check the documentation for more information.')
+            except SyntaxError:
+                print('Diameter,rescale,min_size,channels are not allowed to be overwritten.')
+        else:
+            masks, flows, styles = model.eval(img, diameter=diameter, rescale=rescale, min_size=min_size, channels=channels); 
+        
+        # save masks
+        if save_masks == False and return_results == False:
+            print('Saving and returning of results were switched of - therefore mask saving was turned on!')
+            save_masks = True
+        if save_masks == True:
+            if tar_dir:
+                os.makedirs(Path(tar_dir), exist_ok=True)
+                parent_folder = Path(tar_dir)
+            else:
+                parent_folder = Path(image_path[0]).parent.joinpath('predictions')
+                os.makedirs(parent_folder, exist_ok=True)
+            
+            for ind, id in enumerate(img_id):
+                io.imsave(parent_folder.joinpath(f'{id}_{model_id}_pred.tif'),masks[ind])
+
+        if mute== False:
+            print('Sucessfully created predictions for one image(s).')
+    except KeyboardInterrupt:
+        print('Aborted.')
+    
+    if return_results == True:
+        return masks, flows, styles
+    else:
+        return None
+
+def predict_folder(image_path, model, image_format='jpg', filter_str='',
+                   channels=[0,0], diameter=None,min_size=15,rescale=None,
+                   config=None,tar_dir='', return_results=False, save_masks=True,
+                   mute=False,model_id=''):
     """
     This function takes in a directory containing images, and uses a pre-trained model to predict segmentation masks for the images.
     If `return_results` is `True` respective lists of 1D arrays for predicted *masks*, *flows* and *styles* 
@@ -186,59 +249,39 @@ return_results=False,save_masks=True,mute=False,model_id=''):
     image_path = str(Path(image_path).as_posix()) #ensure that Path is a string for cellpose classes
     mask_l,flow_l,styles_l,id_list,img_l = [],[],[],[],[]
     try:
-        #file_list = natsorted(glob(image_path+'/*'+filter_str+'*.'+image_format))
         file_list = natsorted(glob(f'{Path(image_path)}/*{filter_str}*.{image_format}'))
+        id_list = [Path(file).stem for file in file_list]
+        img_l = [file_list[x] for x in range(len(file_list))]# isn't that just the same as file_list?
+
         if mute== False:
             print('Predicting for ',image_path,'...')
-        count=0
-        for file in tqdm(file_list,desc=str(image_path),unit='image',colour='CYAN'):
-        #for idx in trange(len(file_list), desc=image_path,unit='image',colour='CYAN'):               
-        #for idx, file in enumerate(tqdm(file_list)):
-            img= io.imread(str(file))
-            img_id = Path(file).stem
-            #img_id = file_list[im_idx].split('\\')[len(file_list[im_idx].split('\\'))-1].split('.')[0]
-            if any(x in img_id for x in ['flow','flows','masks','mask','pred','composite']):
+            
+        for count, file in enumerate(tqdm(file_list, desc=image_path, unit='image', colour='CYAN')):
+            if any(x in id_list[count] for x in ['flow','flows','masks','mask','pred','composite']):
                 continue
-            if config:
-                try:
-                    eval_str = ''
-                    for key,val in config.items():
-                        if not eval_str:
-                            i_str=f'{key}={val}'
-                        else:
-                            i_str=f',{key}={val}'
-                        eval_str+=i_str
-                    exec(f'masks, flows, styles = model.eval(img, diameter=diameter,rescale=rescale,min_size=min_size,channels=channels, {eval_str})')
-                except AttributeError:
-                    print('Config file is not formatted correctly. Please check the documentation for more information.')
-                except SyntaxError:
-                    print('Diameter,rescale,min_size,channels are not allowed to be overwritten.')
-            else:
-                masks, flows, styles = model.eval(img, diameter=diameter,rescale=rescale,min_size=min_size,channels=channels); 
-            if save_masks == False and return_results == False:
-                print('Saving and returning of results were switched of - therefore mask saving was turned on!')
-                save_masks = True
-            if save_masks == True:
-                if tar_dir:
-                    os.makedirs(Path(tar_dir), exist_ok=True)
-                    #filepath = Path(tar_dir) / f'{img_id}_{model_id}_pred.tif'
-                    io.imsave(f'{tar_dir}/{img_id}_{model_id}_pred.tif',masks)
-                else:
-                    os.makedirs(f'{image_path}/predictions/',exist_ok=True)
-                    #filepath = Path(image_path) / f'{img_id}_{model_id}_pred.tif'
-                    io.imsave(f'{image_path}/predictions/{img_id}_{model_id}_pred.tif',masks)
-            if return_results == True:
-                mask_l.append(masks)
-                flow_l.append(flows)
-                styles_l.append(styles)
-                id_list.append(img_id)
-                img_l = [file_list[x] for x in range(len(file_list))]
-            count+=1
+            mask, flow, style = predict_single_image(
+                image_path=file,
+                model=model,
+                channels=channels,
+                diameter=diameter,
+                min_size=min_size,
+                rescale=rescale,
+                config=config,
+                return_results=True,
+                save_masks=save_masks,
+                mute=mute,
+                tar_dir=tar_dir,
+                model_id=model_id)
+            
+            mask_l.append(mask)
+            flow_l.append(flow)
+            styles_l.append(style)
+
         if mute== False:
-            print('Sucessfully created predictions for',count,'image(s).')
+            print(f'Sucessfully created predictions for', {count},'image(s).')
     except KeyboardInterrupt:
         print('Aborted.')
-    return mask_l,flow_l,styles_l,id_list,img_l
+    return mask_l, flow_l, styles_l, id_list, img_l
 
 def predict_dataset(image_path,model,image_format='jpg',channels=[0,0],diameter=None,min_size=15,rescale=None,config=None,tar_dir='',
 return_results=False,save_masks=True,mute=False,do_subfolders=False,model_id=''):
