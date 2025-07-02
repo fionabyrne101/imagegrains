@@ -1,11 +1,16 @@
 import os,pickle
 import pandas as pd
+import urllib.request
+import requests
+
 from pathlib import Path
 from glob import glob
 from natsort import natsorted
-import urllib.request
+from tqdm import tqdm
+from imagegrains import __cp_version__
+from cellpose.utils import download_url_to_file
 
-def download_files(tar_path = None):
+def download_files(tar_path = None,cp_version=__cp_version__):
     """
     Downloads the demo data and notebooks from the imagegrains repository.
     
@@ -42,10 +47,11 @@ def download_files(tar_path = None):
                     '7_P1060359_3.jpg',
                     '7_P1060359_3_mask.tif']
     dem_dat_list = ['FH_resolutions.csv', 'OM_err.csv', 'SI_err.csv','K1/K1_C2_385.jpg','K1/K1_C3_0449.jpg','K1_field_measurement.csv', 'res_tSNE.pkl']
-    model_list = ['fh_boosted_1.170223', 'full_set_1.170223']
+    #model_list = ['fh_boosted_1.170223', 'full_set_1.170223']
 
-    os.makedirs(homepath, exist_ok=True)
+    os.makedirs(Path(homepath).as_posix(), exist_ok=True)
     url = "https://raw.githubusercontent.com/dmair1989/imagegrains/main/"
+    print(f'>> Downloading demo data to {Path(homepath).as_posix()} ...')
     os.makedirs(homepath.joinpath('notebooks'), exist_ok=True)
     for nb in nb_list:
         try:
@@ -69,13 +75,36 @@ def download_files(tar_path = None):
         try:
             urllib.request.urlretrieve(f'{url}/demo_data/{file}', homepath.joinpath('demo_data',file))
         except:
-            continue
-    os.makedirs(homepath.joinpath('models'), exist_ok=True)
-    for model in model_list:
-        try:
-            urllib.request.urlretrieve(f'{url}/models/{model}', homepath.joinpath('models',model))
-        except:
-            continue
+            continue 
+    os.makedirs(homepath.joinpath('models'), exist_ok=True)    
+    ## depreceated: load models from github; keep '/models' on github for older versions
+    #for model in model_list:
+    #    try:
+    #        urllib.request.urlretrieve(f'{url}/models/{model}', homepath.joinpath('models',model))
+    #    except:
+    #        continue
+
+    ## zenodo archive for IG2 models
+    url = 'https://zenodo.org/records/15728186/files/'
+    if cp_version > 3: # only download working models
+        model_list2 = ['IG2_full_set_cp_SAM']
+        for moid in model_list2:
+            source_path = f'{url}{moid}'
+            downloadpath = homepath.joinpath('models',moid)
+            if os.path.isfile(Path(downloadpath).as_posix()) == True:
+                print(f'>> Using cached model weights from: {Path(downloadpath).as_posix()}')
+            else:
+                print(f'>> Downloading model weights to: {Path(homepath).as_posix()}/models')
+                download_url_to_file(source_path,downloadpath)
+    else:
+        model_list2 = ['IG2_full_set.200525','IG2_coarse_grains.220425','IG2_baseline.260424','IG1_old_set.170223']
+        for moid in tqdm(model_list2,desc=f'>> Downloading model weights to: {Path(homepath).as_posix()}/models', unit='file(s)'):
+            source_path = f'{url}{moid}'
+            content_in_bytes = requests.get(str(source_path)).content
+            assert type(content_in_bytes) is bytes
+            downloadpath = homepath.joinpath('models',moid)
+            with open(str(Path(downloadpath.as_posix())), 'wb') as f_out:
+                f_out.write(content_in_bytes)
     return Path(homepath).as_posix()
 
 def find_data(image_path, mask_str='mask', im_str='', im_format='jpg', mask_format='tif'):

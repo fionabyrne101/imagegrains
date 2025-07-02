@@ -13,8 +13,8 @@ from natsort import natsorted
 from skimage.measure import label, regionprops_table
 from tifffile import imwrite
 
+from imagegrains import grainsizing, data_loader, plotting, __cp_version__
 from cellpose import metrics, models, io
-from imagegrains import grainsizing, data_loader, plotting
 
 def check_labels(labels,tar_dir='', lbl_str='_mask', mask_format='tif'):
     """
@@ -82,7 +82,7 @@ def check_im_label_pairs(img_list, lbl_list):
 def custom_train(image_path, pretrained_model = None,datstring = None,
                 lr = 0.2, nepochs = 1000,chan1 = 0, chan2= 0, gpu = True, batch_size = 8,
                 mask_filter = '_mask', rescale = False, save_each = False, return_model = False,
-                save_every = 100,model_name = None, label_check = True):
+                save_every = 100,model_name = None, label_check = True,cp_version=__cp_version__):
     
     """
     This function trains a model on the images and labels in the specified directory. The images and labels should be in the same directory. The labels should be in the format: <image_ID>_mask.<mask_format>
@@ -121,22 +121,29 @@ def custom_train(image_path, pretrained_model = None,datstring = None,
     for x2,y2 in zip(test_images,test_masks):
         test_data.append(io.imread(str(x2)))
         test_labels.append(io.imread(str(y2)))
+    
     if not model_name:
-        model_name = model_name
-    else: 
-        if not datstring:
-            datstring = '000815'
-        model_name = f'{model_name}.{datstring}'
+        model_name = 'new_model'
     if not pretrained_model:
         model = models.CellposeModel(gpu=gpu,pretrained_model=None)
-    elif pretrained_model == 'nuclei':
-        model = models.CellposeModel(gpu=gpu,model_type='nuclei')
-    elif pretrained_model == 'cyto':
-        model = models.CellposeModel(gpu=gpu,model_type='cyto')
     else:
         model = models.CellposeModel(gpu=gpu,pretrained_model=pretrained_model)
+
+    if cp_version > 3:
+        channels = None
+
+    else:
+        channels = [chan1,chan2]
+        if not datstring:
+            datstring = '000815'
+            model_name = f'{model_name}.{datstring}'
+        if pretrained_model == 'nuclei':
+            model = models.CellposeModel(gpu=gpu,model_type='nuclei')
+        elif pretrained_model == 'cyto':
+            model = models.CellposeModel(gpu=gpu,model_type='cyto')
+    
     try:
-        model.train(train_data,train_labels,train_images,test_data,test_labels,test_images,channels =[chan1,chan2],
+        model.train(train_data,train_labels,train_images,test_data,test_labels,test_images,channels =channels,
                 rescale=rescale,learning_rate=lr,save_path=image_path, batch_size=batch_size,
                 n_epochs=nepochs,save_each=save_each,save_every=save_every,model_name=model_name)
     except KeyboardInterrupt:
@@ -146,7 +153,7 @@ def custom_train(image_path, pretrained_model = None,datstring = None,
     
 def predict_single_image(image_path, model,channels=[0,0], diameter=None,
                          min_size=15, rescale=None, config=None, return_results=False,
-                         mute=False, save_masks=True,tar_dir='',model_id=''):
+                         mute=False, save_masks=True,tar_dir='',model_id='',cp_version=__cp_version__):
     '''
     Segment one or multiple images with a trained model.
     '''
@@ -159,7 +166,8 @@ def predict_single_image(image_path, model,channels=[0,0], diameter=None,
     try:
         img = [io.imread(str(x)) for x in image_path]
         img_id = [Path(x).stem for x in image_path]
-        
+        if cp_version > 3:
+            channels = None
         if config:
             try:
                 eval_str = ''
@@ -204,7 +212,7 @@ def predict_single_image(image_path, model,channels=[0,0], diameter=None,
 
 def predict_folder(image_path, model, image_format='jpg', filter_str='',
                    channels=[0,0], diameter=None, min_size=15, rescale=None,
-                   config=None,tar_dir='', return_results=False, save_masks=True,
+                   config=None,tar_dir='', save_masks=True,return_results=True,
                    mute=False, model_id=''):
     """
     This function takes in a directory containing images, and uses a pre-trained model to predict segmentation masks for the images.
@@ -220,7 +228,6 @@ def predict_folder(image_path, model, image_format='jpg', filter_str='',
         See https://cellpose.readthedocs.io/en/latest/models.html for more details
     image_format (str(optional, default 'jpg')) - Image format of the images in `image_path`
     filter_str (str(optional, default '')) - A string used to filter the images in `image_path`
-    return_results (bool(optional, default False)) - flag for returning predicted masks, flows and styles
     config (dict(optional, default None)) - dictionary of advanced parameters to be handed down to `CellposeModel.eval()` where keys are parameters and values are parameter values.
     tar_dir (str(optional, default '')) - The directory to save the predicted masks to.
     save_masks (bool(optional, default True)) - flag for saving predicted mask as `.tif` files in `tar_dir`
@@ -249,14 +256,13 @@ def predict_folder(image_path, model, image_format='jpg', filter_str='',
     image_path = str(Path(image_path).as_posix()) #ensure that Path is a string for cellpose classes
     mask_l,flow_l,styles_l,id_list,img_l = [],[],[],[],[]
     try:
-        file_list = natsorted(glob(f'{Path(image_path)}/*{filter_str}*.{image_format}'))
-        id_list = [Path(file).stem for file in file_list]
-        img_l = [file_list[x] for x in range(len(file_list))]# isn't that just the same as file_list?
+        img_l = natsorted(glob(f'{Path(image_path)}/*{filter_str}*.{image_format}'))
+        id_list = [Path(file).stem for file in img_l]
 
         if mute== False:
             print('Predicting for ',image_path,'...')
             
-        for count, file in enumerate(tqdm(file_list, desc=image_path, unit='image', colour='CYAN')):
+        for count, file in enumerate(tqdm(img_l, desc=image_path, unit='image', colour='CYAN')):
             if any(x in id_list[count] for x in ['flow','flows','masks','mask','pred','composite']):
                 continue
             mask, flow, style = predict_single_image(
@@ -281,18 +287,23 @@ def predict_folder(image_path, model, image_format='jpg', filter_str='',
             print(f'Sucessfully created predictions for', {count},'image(s).')
     except KeyboardInterrupt:
         print('Aborted.')
-    return mask_l, flow_l, styles_l, id_list, img_l
+    if return_results == True:
+        return mask_l, flow_l, styles_l, id_list, img_l
+    else: 
+        mask_l, flow_l, styles_l, id_list, img_l = [],[],[],[]
+        return mask_l, flow_l, styles_l, id_list, img_l
 
 def predict_dataset(image_path, model,image_format='jpg', channels=[0,0],
                     diameter=None, min_size=15, rescale=None, config=None, tar_dir='',
                     return_results=False, save_masks=True, mute=False,
-                    do_subfolders=False, model_id=''):
+                    do_subfolders=False, model_id='',use_gpu=True):
     """
     Wrapper for helper.prediction.predict_folder() for a dataset that is organised in subfolders (e.g., in directories named `train`,`test`)
 
     Parameters:
     ------------
     do_subfolders (bool (optional, default=False)) - flag to look for files in subfolders
+    return_results (bool(optional, default False)) - flag for returning predicted masks, flows and styles
 
     all others are the same as helper.prediction.predict_folder()
 
@@ -315,18 +326,19 @@ def predict_dataset(image_path, model,image_format='jpg', channels=[0,0],
     if type(model) != models.CellposeModel:
         try:
             model_path = str(Path(model).as_posix())
-            model = models.CellposeModel(gpu=True, pretrained_model=model_path)
+            model = models.CellposeModel(gpu=use_gpu, pretrained_model=model_path)
             if not model_id:
                 model_id = Path(model_path).stem
-        except:
-            print("Model not found. Please check the path to the model.")
+        except Exception as err:
+            print(f"Could not load model. {err}: / Please check Path or switch to CPU in case of not enough GPU memory.")
+            return
     working_directories = data_loader.assert_work_dirs(image_path,do_subfolders=do_subfolders)
     for working_directory in working_directories:
         check_l = natsorted(glob(f'{working_directory}/*.{image_format}'))
         if len(check_l)>0:
             working_directory = str(Path(working_directory).as_posix()) #ensure that working directory is a string for cellpose classes
             mask_l_i,flow_l_i,styles_l_i,id_list_i,_ = predict_folder(working_directory,model,image_format=image_format,channels=channels,diameter=diameter,
-            min_size=min_size,rescale=rescale,config=config,tar_dir=tar_dir,return_results=return_results,save_masks=save_masks,mute=mute,model_id=model_id)
+            min_size=min_size,rescale=rescale,config=config,tar_dir=tar_dir,save_masks=save_masks,mute=mute,model_id=model_id)
             if return_results==True:
                 for idx,x in enumerate(mask_l_i):
                     mask_ll.append(x)
@@ -338,7 +350,7 @@ def predict_dataset(image_path, model,image_format='jpg', channels=[0,0],
     
     return mask_ll,flow_ll,styles_ll,list_of_id_lists
 
-def models_from_zoo(model_dir, use_GPU=True):
+def models_from_zoo(model_dir, use_GPU=True,cp_version=__cp_version__):
     """
     Loads pre-trained cellpose model(s) from a folder.
 
@@ -353,19 +365,21 @@ def models_from_zoo(model_dir, use_GPU=True):
     model_id_list (list) - list of cellpose model names
 
     """
-    model_list = natsorted(glob(f'{Path(model_dir)}/*.*'))
+    if cp_version > 3:
+        model_list = natsorted(glob(f'{Path(model_dir)}/*cp_SAM*'))
+    else:
+        model_list = natsorted(glob(f'{Path(model_dir)}/*.*'))
     try:
         models.CellposeModel(gpu=use_GPU,pretrained_model=model_list[0])
     except:
         print('No cellpose model found in this directory.')
     model_id_list = [Path(model_list[idx]).stem for idx in range(len(model_list))]
-    #model_id_list = [model_list[i].split('\\')[len(model_list[i].split('\\'))-1].split('.')[0] for i in range(len(model_list))]
     return model_list,model_id_list
 
 def batch_predict(model_dir, dir_paths, configuration=None, image_format='jpg',
                   use_GPU=True, channels=[0,0], diameter=None, min_size=15,
                   rescale=None, tar_dir='', return_results=False, save_masks=True,
-                  mute=False, do_subfolders=False):
+                  mute=False, do_subfolders=False, cp_version=__cp_version__):
     """
     Wrapper for helper.prediction.predict_dataset() that can do predictions on the same dataset for multiple models from a directory (`model_dir`).
 
@@ -390,11 +404,18 @@ def batch_predict(model_dir, dir_paths, configuration=None, image_format='jpg',
     
     """
     model_dir = str(Path(model_dir).as_posix())
-    if '.' in str(model_dir):
-        model_list = [model_dir]
-        model_id_list = [Path(model_dir).stem]
-    else:
-        model_list,model_id_list = models_from_zoo(model_dir)
+    if cp_version > 3:
+        if Path(model_dir).suffix == '' and 'cp_SAM' in str(model_dir):
+            model_list = [model_dir]
+            model_id_list = [Path(model_dir).stem]
+        else:
+            model_list,model_id_list = models_from_zoo(model_dir)
+    else:                   
+        if '.' in str(model_dir):
+            model_list = [model_dir]
+            model_id_list = [Path(model_dir).stem]
+        else:
+            model_list,model_id_list = models_from_zoo(model_dir)
     all_results= {}
     for m_idx in range(len(model_list)):
         model = models.CellposeModel(gpu=use_GPU,pretrained_model=str(model_list[m_idx]))
@@ -510,7 +531,7 @@ def combine_2D(preds_small, preds_large, imgs,tar_dir='', model_id='',
                filters=None, threshold=150, mute=True, do_composites=True,
                remove_intersecting=False):
     """
-    Combines predictions from two models (small and large) into one mask in 2D.
+    Combines predictions from two models (small and large diameters) into one mask in 2D.
     """
 
     for p_1,p_2,img in tqdm(zip(preds_small,preds_large,imgs),unit='image'):
@@ -591,7 +612,7 @@ def eval_set(imgs, lbls, preds, data_id='', tar_dir='',
     tar_dir (str (optional, default='')) - Directory to save results to
     thresholds (list (optional, default=[0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9])) - Thresholds to evaluate at
     filters (dict (optional, default={'edge':[False,.05],'px_cutoff':[False,10]})) - Dictionary of filters to apply to labels and predictions
-    filter_props (list (optional, default=['label','area','centroid','major_axis_length','minor_axis_length'])) - pPoperties to filter on
+    filter_props (list (optional, default=['label','area','centroid','major_axis_length','minor_axis_length'])) - Properties to filter on
     save_results (bool (optional, default=True)) - Flag whether to save results to a pkl file
     return_results (bool (optional, default=True)) - Flag whether to return results
 
@@ -728,7 +749,7 @@ def get_stats_for_res(preds, res_dict, test_idxs=None):
     ------------
     preds (list) - List of predictions paths
     res_dict (dict) - Dictionary of evaluation results
-    test_idxs (list (optional, default=None)) - ?
+    test_idxs (list (optional, default=None)) - Indices of images in test split
 
     Returns
     ------------
@@ -777,18 +798,23 @@ def get_stats_for_run(pred_list, res_list, titles,
         res_stats.loc[j] = [titles[j]]+entry
     return res_stats
 
-def get_style_vectors(do_inference=True, tar_dir='', model='default',
-                      im_paths=None, mute = True,res_file=None):
+def get_style_vectors(do_inference=True, tar_dir='', model='default', use_gpu=True,
+                      im_paths=None, mute = True,res_file=None,cp_version=__cp_version__):
     """
     Use to define.
     """
     if model == 'default':
         homepath = Path.home().joinpath('imagegrains')
-        model = f'{homepath}/models/full_set_1.170223'
+        if cp_version > 3:
+            model = f'{homepath}/models/IG2_full_set_cp_SAM'
+        else:   
+            model = f'{homepath}/models/IG2_full_set.200525'
     if not model:
         try:
-            homepath = Path.home().joinpath('imagegrains')
-            model = f'{homepath}/models/full_set_1.170223'
+            if cp_version > 3:
+                model = f'{homepath}/models/IG2_full_set_cp_SAM'
+            else:   
+                model = f'{homepath}/models/IG2_full_set.200525'
         except:
             pass
     if tar_dir:
@@ -796,10 +822,10 @@ def get_style_vectors(do_inference=True, tar_dir='', model='default',
     if do_inference == True:
         if im_paths:
             print(f'Running inference for styles with {Path(model).name}...')
-            model = models.CellposeModel(gpu=True,pretrained_model=model)
+            model = models.CellposeModel(gpu=use_gpu,pretrained_model=model)
             test_styles,train_styles,testnames,trainnames,testpaths,trainpaths = [],[],[],[],[],[]
             for path in im_paths:
-                _,_,styles,ids,imgs=predict_folder(path,model,min_size=-1,return_results=True, mute=True)
+                _,_,styles,ids,imgs=predict_folder(path,model,min_size=-1, mute=True)
                 for styli,idi,imgi in zip(styles,ids,imgs):
                     imgi = Path(imgi).as_posix()
                     if '/test' in imgi:

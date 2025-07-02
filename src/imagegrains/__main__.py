@@ -4,9 +4,9 @@ import torch
 import matplotlib.pyplot as plt
 import pandas as pd
 from numpy.random import default_rng
-from cellpose import io
 from imagegrains import segmentation_helper, grainsizing, gsd_uncertainty
-from imagegrains import data_loader, plotting
+from imagegrains import data_loader, plotting, __cp_version__
+from cellpose import io
 
 def main():
     parser = argparse.ArgumentParser(description='ImageGrains')
@@ -65,6 +65,8 @@ def main():
 
     tar_dir = '' if args.out_dir == None else args.out_dirs
 
+    use_gpu = False if args.gpu else True
+
     if args.img_dir == None or os.path.exists(args.img_dir) == False:
         print('>> Please specify a valid input directory for images to segment.')
         exit()
@@ -79,16 +81,18 @@ def main():
 
     if args.model_dir == None and skip_segmentation==False:
         print('>> No model specified. Using default model.')
-        #parent = str(Path(os.getcwd()).parent)
         parent = Path(Path.home() / 'imagegrains')
-        args.model_dir = Path(parent / 'models' / 'full_set_1.170223')
+        if __cp_version__ > 3:
+            args.model_dir = Path(parent / 'models' / 'IG2_full_set_cp_SAM')
+        else:
+            args.model_dir = Path(parent / 'models' / 'IG2_full_set.200525')
         if os.path.exists(args.model_dir) == False:
             print('>> Default model not found. Please provide a valid model path or re-download the default models.')
             exit()
 
     #segmentation
     if skip_segmentation == False:
-        segmentation_step(args,mute=mute,tar_dir=tar_dir)
+        segmentation_step(args,mute=mute,tar_dir=tar_dir,use_gpu=use_gpu)
     
     if skip_grainsize == True:
         print('>> Skipping grain size estimation.')
@@ -141,38 +145,44 @@ def main():
         gsd_step(resample_path,args,mute=mute,tar_dir=tar_dir,resampled=resampled)
 
 
-def segmentation_step(args,mute=False,tar_dir=''):
+def segmentation_step(args,mute=False,tar_dir='',use_gpu=True):
     keep_crs = True if args.keep_crs else False
-    if args.gpu == True:
+    if use_gpu == True:
         if torch.cuda.is_available() == True and mute == False:
             print('>> Using GPU: ',torch.cuda.get_device_name(0))
         elif torch.cuda.is_available() == False and mute== False:
             print('>> GPU not available - check if correct pytorch version is installed. Using CPU instead.')
     
-    if '.' in str(args.model_dir):
-        model_ids = [Path(args.model_dir).stem]
+    if __cp_version__ >3:
+        if Path(args.model_dir).suffix == '' and 'cp_SAM' in str(args.model_dir):
+            model_ids = [Path(args.model_dir).stem]
+        else:
+            _,model_ids = segmentation_helper.models_from_zoo(args.model_dir)
     else:
-        _,model_ids = segmentation_helper.models_from_zoo(args.model_dir)
+        if '.' in str(args.model_dir):
+            model_ids = [Path(args.model_dir).stem]
+        else:
+            _,model_ids = segmentation_helper.models_from_zoo(args.model_dir)
 
     imgs,_,_ = data_loader.dataset_loader(Path(args.img_dir),image_format=args.img_type)
     second_diameter = None if not args.second_diameter else args.second_diameter
     if not second_diameter:
         print('>> ImageGrains: Segmenting ',args.img_type,' images in ',args.img_dir)
         _ = segmentation_helper.batch_predict(args.model_dir,args.img_dir,tar_dir=tar_dir,
-                                        image_format=args.img_type,use_GPU=args.gpu,diameter=args.diameter, min_size=args.min_size,
+                                        image_format=args.img_type,use_GPU=use_gpu,diameter=args.diameter, min_size=args.min_size,
                                             mute=mute,return_results=False,save_masks=True)
     else:
         print('>> ImageGrains: Segmenting ',args.img_type,' images in ',args.img_dir,'with diameter =',args.second_diameter)
         path1 = f'{args.out_dir}/diam{int(second_diameter)}' if args.out_dir else f'{args.img_dir}/diam{int(second_diameter)}'
         os.makedirs(path1,exist_ok=True)
         _ = segmentation_helper.batch_predict(args.model_dir,args.img_dir,tar_dir=path1,
-                                        image_format=args.img_type,use_GPU=args.gpu,diameter=args.second_diameter, min_size=args.min_size,
+                                        image_format=args.img_type,use_GPU=use_gpu,diameter=args.second_diameter, min_size=args.min_size,
                                             mute=mute,return_results=False,save_masks=True)
         print('>> ... and with diameter =',args.diameter)
         path2 = f'{args.out_dir}/diam{args.diameter}' if args.out_dir else f'{args.img_dir}/diam{args.diameter}'
         os.makedirs(path2,exist_ok=True)
         _ = segmentation_helper.batch_predict(args.model_dir,args.img_dir,tar_dir=path2,
-                                            image_format=args.img_type,use_GPU=args.gpu,diameter=args.diameter, min_size=args.min_size,
+                                            image_format=args.img_type,use_GPU=use_gpu,diameter=args.diameter, min_size=args.min_size,
                                                 mute=mute,return_results=False,save_masks=True)
         #Combine scales
         print('>> ImageGrains: Combining predictions...')
