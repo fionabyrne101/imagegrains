@@ -290,7 +290,7 @@ def predict_folder(image_path, model, image_format='jpg', filter_str='',
     if return_results == True:
         return mask_l, flow_l, styles_l, id_list, img_l
     else: 
-        mask_l, flow_l, styles_l, id_list, img_l = [],[],[],[]
+        mask_l, flow_l, styles_l, id_list, img_l = [],[],[],[],[]
         return mask_l, flow_l, styles_l, id_list, img_l
 
 def predict_dataset(image_path, model,image_format='jpg', channels=[0,0],
