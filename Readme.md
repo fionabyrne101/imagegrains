@@ -48,7 +48,7 @@ The easiest way to install the software is by using the conda package manager. I
 To install the software, open an anaconda prompt / command prompt, then create a new environment with:
 
 ```text
-conda create --name imagegrains -c conda-forge python=3.9  
+conda create --name imagegrains -c conda-forge python=3.10  
 ```
 
 and activate it with:
