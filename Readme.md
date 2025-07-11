@@ -5,10 +5,25 @@
 ![PyPI - Wheel](https://img.shields.io/pypi/wheel/imagegrains)
 ![PyPI - License](https://img.shields.io/pypi/l/imagegrains?color=green)
 ![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/dmair1989/imagegrains)
+[![PyPI Downloads](https://static.pepy.tech/badge/imagegrains)](https://pepy.tech/projects/imagegrains)
 
 A software library for segmenting and measuring of sedimentary particles in images. The segmentation is done with [*Cellpose*](https://github.com/mouseland/cellpose), designed for cell and nucleus segmentation in biomedical images. Its segmentation capability is transferred to geoscientific applications throurgh re-training of the model with images of sediment particles. Pretrained [segmentation models](https://doi.org/10.5281/zenodo.15309323) from our [data](https://doi.org/10.5281/zenodo.8005771) are available or custom models can be trained (see [paper](https://doi.org/10.1002/esp.5755) for details).
 
 <img src="https://github.com/dmair1989/ImageGrains/blob/main/illustrations/example.png?raw=true" align="center">
+  
+## :sparkles: Version 2.0 (in development) :sparkles:
+
+Currently, we prepare a major update, which includes:
+
+* [New models](https://doi.org/10.5281/zenodo.15309323) trained on a larger and more diverse dataset (IG2).
+* Switching to [*Cellpose-SAM*](https://doi.org/10.1101/2025.04.28.651001) (```4.0.1+```) as default segmentation model, which improves the segmentation accuracy and generalization ***a lot***.
+* A [graphical user interface (GUI)](#how-does-it-work).
+  
+These features are already available as pre-release, i.e., when [installed](#local-installation) with:
+  
+```text
+pip install git+https://github.com/dmair1989/imagegrains.git
+```
 
 ## Citation  
 
@@ -50,7 +65,7 @@ pip install imagegrains
 
 ### GPU support  
 
-By default, Cellpose will run on the CPU. From version `4.0.1` on,  Cellpose uses transformer (*Cellpose-SAM*) as backbone segmentation model, which is much larger than the previous model. **Using a GPU on local machines is strongly recommended**.  
+By default, *Cellpose* will run on the CPU. From version `4.0.1` on,  it uses a transformer (*Cellpose-SAM*) as backbone segmentation model, which is much larger than the previous model. **Using a GPU on local machines is strongly recommended**.  
 To use a GPU version on Windows or Linux, you will have to make sure you have a GPU compatible PyTorch version. For this:
 
 1. Uninstall the PyTorch version that gets installed by default with Cellpose:
@@ -63,19 +78,29 @@ To use a GPU version on Windows or Linux, you will have to make sure you have a 
 
         pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cu118  
 
-If you work on a Mac, Cellpose (version `4.0.1` and later) supports M1-M3 out-of-the-box  [M1, M3 support](https://cellpose.readthedocs.io/en/latest/installation.html#m1-m3-mac-installation).
-Details and more installation options of cellpose (including GPU versions for Windows and Linux) are also found [here](https://github.com/mouseland/cellpose#installation).
+If you work on a Mac, Cellpose (version `4.0.1` and later) supports   [M1-M3 out-of-the-box](https://cellpose.readthedocs.io/en/latest/installation.html#m1-m3-mac-installation).
+Details and more installation options of Cellpose (including GPU versions for Windows and Linux) are also available in the [Cellpose repository](https://github.com/mouseland/cellpose#installation).
 
 ## How does it work?
 
-ImageGrains is organised in 3 main modules for *Segmentation*, *Grain size measurements* and *Grain size distribution (GSD) analysis* (see below). There are several ways to use it:  
+ImageGrains is organised in 3 main modules for [*Segmentation*](#segmentation-of-own-images), [*Grain size measurements*](#grain-size-measurements) and [*Grain size distribution (GSD) analysis*](#grain-size-distribution-gsd-and-uncertainty). There are several ways to use them:  
 \
 \
-**1 - User Interface:** The most convienient option is to use the GUI built as [napari](https://github.com/napari/napari) plugin: <https://github.com/guiwitz/napari-imagegrains>. You can simply install it with:
+**1 - User Interface:** The most convienient option is to use the GUI built as [napari](https://github.com/napari/napari) plugin: <https://github.com/guiwitz/napari-imagegrains>. 
+  
+<img src="https://github.com/dmair1989/ImageGrains/blob/main/illustrations/gui.png?raw=true" align="center">  
+   
+You can simply install it with:
 
 ```text
-pip install napari-imagegrains
+pip install git+https://github.com/dmair1989/napari-imagegrains.git
 ```  
+
+Afterwards, you can start the program by running:
+  
+```text
+napari
+```
 
 For instructions, please refer to the [docs](https://guiwitz.github.io/napari-imagegrains/napari_imagegrains.html).
 \
@@ -147,5 +172,5 @@ jupyter lab
 - If you run into problems with  OpenMP and libiomp5, you can try to create the environment using the ```nomkl``` package (more details [here](https://stackoverflow.com/questions/53014306/error-15-initializing-libiomp5-dylib-but-found-libiomp5-dylib-already-initial)) before installing imagegrains with:
 
 ```text
-conda create --name imagegrains -c conda-forge python=3.8 imagecodecs nomkl 
+conda create --name imagegrains -c conda-forge python=3.10 imagecodecs nomkl 
 ```
