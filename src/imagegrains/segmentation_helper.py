@@ -825,7 +825,7 @@ def get_style_vectors(do_inference=True, tar_dir='', model='default', use_gpu=Tr
             model = models.CellposeModel(gpu=use_gpu,pretrained_model=model)
             test_styles,train_styles,testnames,trainnames,testpaths,trainpaths = [],[],[],[],[],[]
             for path in im_paths:
-                _,_,styles,ids,imgs=predict_folder(path,model,min_size=-1, mute=True)
+                _,_,styles,ids,imgs=predict_folder(path,model,min_size=-1, mute=True,return_results=True)
                 for styli,idi,imgi in zip(styles,ids,imgs):
                     imgi = Path(imgi).as_posix()
                     if '/test' in imgi:
