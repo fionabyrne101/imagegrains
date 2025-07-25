@@ -15,9 +15,10 @@ A software library for segmenting and measuring of sedimentary particles in imag
 
 Currently, we prepare a major update, which includes:
 
-* [New models](https://doi.org/10.5281/zenodo.15309323) trained on a larger and more diverse dataset (IG2).
 * Switching to [*Cellpose-SAM*](https://doi.org/10.1101/2025.04.28.651001) (```4.0.1+```) as default segmentation model, which improves the segmentation accuracy and generalization ***a lot***.
-* A [graphical user interface (GUI)](#how-does-it-work).
+* [New models](https://doi.org/10.5281/zenodo.15309323) trained on a larger dataset (IG2) that includes different types of grains and imagery.
+* Including 3D segmentation of CT-scan stacks; see [Notebook](https://github.com/dmair1989/imagegrains/blob/main/notebooks/CT_3D_segmentation.ipynb) and [Schuster et al. (2025)](https://doi.org/10.1111/bor.70023).  
+* A [graphical user interface (GUI)](#how-does-it-work).  
   
 These features are already available as pre-release, i.e., when [installed](#local-installation) with:
   
