@@ -33,24 +33,26 @@ def check_labels(labels,tar_dir='', lbl_str='_mask', mask_format='tif'):
     track_l (list) - List of image IDs for which the labels were renamed
     
     """
+
     if tar_dir:
         os.makedirs(Path(tar_dir), exist_ok=True)
+
     track_l = []
+
     for label in labels:
         if lbl_str in label:
             continue
         else:
             img= io.imread(str(label))
             img_id = Path(label).stem
-            #img_id = label.split('\\')[len(label.split('\\'))-1].split('.')[0]
             print(img_id)
-            #plt.imshow(img)
-            #io.imsave(tar_dir+'/'+img_id+lbl_str+'.'+mask_format,img)
             imgpath = Path(tar_dir)/f'{img_id}{lbl_str}.{mask_format}'
             io.imsave(str(imgpath),img)
             track_l.append(img_id)
+
     if len(track_l) == 0:
         print('No files renamed.')
+
     return track_l
 
 def check_im_label_pairs(img_list, lbl_list):
@@ -67,16 +69,20 @@ def check_im_label_pairs(img_list, lbl_list):
     error_list (list) - List of paths to the images for which the labels are missing
 
     """
+
     error_list=[]
+
     for image in img_list:
         img_id = Path(image).stem
-        #img_id = image.split('\\')[len(image.split('\\'))-1].split('.')[0]
+        
         if any(img_id in x for x in lbl_list):
             continue
         else:
             error_list.append(image)
+
     if len(error_list)==0:
         print('All images have labels.')
+
     return error_list
 
 def custom_train(image_path, pretrained_model = None,datstring = None,
@@ -105,8 +111,9 @@ def custom_train(image_path, pretrained_model = None,datstring = None,
     
     """
 
-    logger, log_file = io.logger_setup()
+    _, _ = io.logger_setup()
     train_images,train_masks,test_images,test_masks = data_loader.find_data(image_path,mask_str=mask_filter)
+
     if label_check == True:
         check_labels(train_masks);
         check_labels(test_masks);
@@ -124,6 +131,7 @@ def custom_train(image_path, pretrained_model = None,datstring = None,
     
     if not model_name:
         model_name = 'new_model'
+
     if not pretrained_model:
         model = models.CellposeModel(gpu=gpu,pretrained_model=None)
     else:
@@ -148,6 +156,7 @@ def custom_train(image_path, pretrained_model = None,datstring = None,
                 n_epochs=nepochs,save_each=save_each,save_every=save_every,model_name=model_name)
     except KeyboardInterrupt:
             print('Training interrupted.')
+
     if return_model == True:
         return model 
     
@@ -166,8 +175,10 @@ def predict_single_image(image_path, model,channels=[0,0], diameter=None,
     try:
         img = [io.imread(str(x)) for x in image_path]
         img_id = [Path(x).stem for x in image_path]
+
         if cp_version > 3:
             channels = None
+
         if config:
             try:
                 eval_str = ''
@@ -185,10 +196,10 @@ def predict_single_image(image_path, model,channels=[0,0], diameter=None,
         else:
             masks, flows, styles = model.eval(img, diameter=diameter, rescale=rescale, min_size=min_size, channels=channels); 
         
-        # save masks
         if save_masks == False and return_results == False:
             print('Saving and returning of results were switched of - therefore mask saving was turned on!')
             save_masks = True
+
         if save_masks == True:
             if tar_dir:
                 os.makedirs(Path(tar_dir), exist_ok=True)
@@ -253,8 +264,10 @@ def predict_folder(image_path, model, image_format='jpg', filter_str='',
     img_l (list 2D array lists (optional, default = [])) - Input images
 
     """
+
     image_path = str(Path(image_path).as_posix()) #ensure that Path is a string for cellpose classes
     mask_l,flow_l,styles_l,id_list,img_l = [],[],[],[],[]
+
     try:
         img_l = natsorted(glob(f'{Path(image_path)}/*{filter_str}*.{image_format}'))
         id_list = [Path(file).stem for file in img_l]
@@ -287,10 +300,12 @@ def predict_folder(image_path, model, image_format='jpg', filter_str='',
             print(f'Sucessfully created predictions for', {count},'image(s).')
     except KeyboardInterrupt:
         print('Aborted.')
+
     if return_results == True:
         return mask_l, flow_l, styles_l, id_list, img_l
     else: 
         mask_l, flow_l, styles_l, id_list, img_l = [],[],[],[],[]
+
         return mask_l, flow_l, styles_l, id_list, img_l
 
 def predict_dataset(image_path, model,image_format='jpg', channels=[0,0],
@@ -322,7 +337,9 @@ def predict_dataset(image_path, model,image_format='jpg', channels=[0,0],
     img_ll (list 2D array lists (optional, default = [])) - Input images
 
     """
+
     mask_ll,flow_ll,styles_ll,list_of_id_lists,=[],[],[],[]
+
     if type(model) != models.CellposeModel:
         try:
             model_path = str(Path(model).as_posix())
@@ -332,9 +349,12 @@ def predict_dataset(image_path, model,image_format='jpg', channels=[0,0],
         except Exception as err:
             print(f"Could not load model. {err}: / Please check Path or switch to CPU in case of not enough GPU memory.")
             return
+        
     working_directories = data_loader.assert_work_dirs(image_path,do_subfolders=do_subfolders)
+
     for working_directory in working_directories:
         check_l = natsorted(glob(f'{working_directory}/*.{image_format}'))
+
         if len(check_l)>0:
             working_directory = str(Path(working_directory).as_posix()) #ensure that working directory is a string for cellpose classes
             mask_l_i,flow_l_i,styles_l_i,id_list_i,_ = predict_folder(working_directory,model,image_format=image_format,channels=channels,diameter=diameter,
@@ -349,32 +369,6 @@ def predict_dataset(image_path, model,image_format='jpg', channels=[0,0],
             continue
     
     return mask_ll,flow_ll,styles_ll,list_of_id_lists
-
-def models_from_zoo(model_dir, use_GPU=True,cp_version=__cp_version__):
-    """
-    Loads pre-trained cellpose model(s) from a folder.
-
-    Parameters:
-    ------------
-    model_dir (str, Path) - model directory 
-    use_GPU (bool (optional, default=True)) - GPU flag
-
-    Returns
-    ------------
-    model_list (list) - list of cellpose model paths
-    model_id_list (list) - list of cellpose model names
-
-    """
-    if cp_version > 3:
-        model_list = natsorted(glob(f'{Path(model_dir)}/*cp_SAM*'))
-    else:
-        model_list = natsorted(glob(f'{Path(model_dir)}/*.*'))
-    try:
-        models.CellposeModel(gpu=use_GPU,pretrained_model=model_list[0])
-    except:
-        print('No cellpose model found in this directory.')
-    model_id_list = [Path(model_list[idx]).stem for idx in range(len(model_list))]
-    return model_list,model_id_list
 
 def batch_predict(model_dir, dir_paths, configuration=None, image_format='jpg',
                   use_GPU=True, channels=[0,0], diameter=None, min_size=15,
@@ -403,7 +397,9 @@ def batch_predict(model_dir, dir_paths, configuration=None, image_format='jpg',
     all_results (dict (optional, default = {})) - dict containing output from helper.prediction.predict_dataset().
     
     """
+
     model_dir = str(Path(model_dir).as_posix())
+
     if cp_version > 3:
         if Path(model_dir).suffix == '' and 'cp_SAM' in str(model_dir):
             model_list = [model_dir]
@@ -416,11 +412,14 @@ def batch_predict(model_dir, dir_paths, configuration=None, image_format='jpg',
             model_id_list = [Path(model_dir).stem]
         else:
             model_list,model_id_list = models_from_zoo(model_dir)
+
     all_results= {}
+
     for m_idx in range(len(model_list)):
         model = models.CellposeModel(gpu=use_GPU,pretrained_model=str(model_list[m_idx]))
         model_id = model_id_list[m_idx]
         print(model_id,'found...')
+
         if configuration:
             if len(configuration)>1:
                 try:
@@ -428,18 +427,15 @@ def batch_predict(model_dir, dir_paths, configuration=None, image_format='jpg',
                 except AttributeError:
                     pass
             else:
-                try:
-                    for key,val in configuration.items():
-                        exec(key + '=val')
-                    if mute == False:
-                        print('... with custom configuration.')
-                except AttributeError:
-                    pass
+                if type(configuration)==dict:
+                    config = configuration
         else:
             config = None
+
         if type(dir_paths) != list:
             dir_paths = [dir_paths]
         dir_paths = [str(Path(dir_paths[idx]).as_posix()) for idx in range(len(dir_paths))]
+
         for d_idx in range(len(dir_paths)):
             all_mask_l,all_flow_l,all_styles_l,all_id_list = predict_dataset(dir_paths[d_idx],model,
             image_format=image_format,channels=channels,diameter=diameter,min_size=min_size,rescale=rescale,config=config,tar_dir=tar_dir,
@@ -447,7 +443,38 @@ def batch_predict(model_dir, dir_paths, configuration=None, image_format='jpg',
             if return_results == True:
                 dataset_res = {'masks':all_mask_l,'flows':all_flow_l,'styles':all_styles_l,'id':all_id_list}
                 all_results[f'{model_id}_{d_idx}']=dataset_res
+
     return all_results
+
+def models_from_zoo(model_dir, use_GPU=True,cp_version=__cp_version__):
+    """
+    Loads pre-trained cellpose model(s) from a folder.
+
+    Parameters:
+    ------------
+    model_dir (str, Path) - model directory 
+    use_GPU (bool (optional, default=True)) - GPU flag
+
+    Returns
+    ------------
+    model_list (list) - list of cellpose model paths
+    model_id_list (list) - list of cellpose model names
+
+    """
+
+    if cp_version > 3:
+        model_list = natsorted(glob(f'{Path(model_dir)}/*cp_SAM*'))
+    else:
+        model_list = natsorted(glob(f'{Path(model_dir)}/*.*'))
+
+    try:
+        models.CellposeModel(gpu=use_GPU,pretrained_model=model_list[0])
+    except:
+        print('No cellpose model found in this directory.')
+
+    model_id_list = [Path(model_list[idx]).stem for idx in range(len(model_list))]
+
+    return model_list,model_id_list
 
 def combine_preds(preds_small, preds_large, imgs,tar_dir='', model_id='',
                   filters=None, threshold=None, mute=True, do_composites=True,
@@ -459,17 +486,20 @@ def combine_preds(preds_small, preds_large, imgs,tar_dir='', model_id='',
 
     if tar_dir != '':
         os.makedirs(tar_dir,exist_ok=True)
+
     if stack_3D==False:    
         if type(imgs) == np.ndarray and imgs.ndim > 2:
                 print('Numpy.ndarray passed - trying 3D combination!')
                 stack_3D = True
     print(f'Combining predictions for {len(imgs)} images:')
+
     if stack_3D == True:
         combine_3D(preds_small,preds_large,tar_dir=tar_dir,model_id=model_id,filters=filters,threshold=threshold,mute=mute,
                   remove_intersecting=remove_intersecting,file_name=file_name)
     else:
         combine_2D(preds_small,preds_large,imgs,tar_dir=tar_dir,model_id=model_id,filters=filters,threshold=threshold,mute=mute,
                   do_composites=do_composites,remove_intersecting=remove_intersecting)
+        
     return
 
 def combine_3D(preds_small, preds_large, tar_dir='', model_id='', filters=None,
@@ -483,6 +513,7 @@ def combine_3D(preds_small, preds_large, tar_dir='', model_id='', filters=None,
         return
     stack_list = []
     conflict_list = []
+
     if file_name != '':
         file_id = file_name
     else:
@@ -491,6 +522,7 @@ def combine_3D(preds_small, preds_large, tar_dir='', model_id='', filters=None,
     #adapt label numbers to ensure no duplicates in 3D
     max_label = np.max(preds_large)
     preds_small = np.where(preds_small > 0, preds_small + max_label, preds_small)
+
     for masks1,masks2 in tqdm(zip(preds_small,preds_large),desc=str(file_name),unit='slice'):
         if threshold != None:
         #filter first with regular quality filters and then split along size_threshold
@@ -503,6 +535,7 @@ def combine_3D(preds_small, preds_large, tar_dir='', model_id='', filters=None,
         else: 
             m1 = masks1
             m2 = masks2
+
         if not any(x is None for x in [m1,m2]): 
             #combine masks
             combined = np.where(m2 == 0, m2 + m1, m2) #simple priority for large grains
@@ -515,16 +548,20 @@ def combine_3D(preds_small, preds_large, tar_dir='', model_id='', filters=None,
             combined = m1
         stack_list.append(combined)
     new_stack = np.stack(stack_list)
+
     if remove_intersecting == True:
         for key in conflict_list:
             new_stack[new_stack == key]=0  #remove entire grain for intersecting preds in 3D
+
     if tar_dir == '':
             data_path= f'{Path.cwd().as_posix()}/predictions/'
             os.makedirs(data_path,exist_ok=True)
     else:
         data_path = tar_dir
+
     filename_i = f'{data_path}/{file_id}_{model_id}_combined_pred.tif'
     imwrite(filename_i, new_stack)
+
     return
 
 def combine_2D(preds_small, preds_large, imgs,tar_dir='', model_id='',
@@ -536,37 +573,39 @@ def combine_2D(preds_small, preds_large, imgs,tar_dir='', model_id='',
 
     for p_1,p_2,img in tqdm(zip(preds_small,preds_large,imgs),unit='image'):
         #load preds for small grains
-            masks1 = io.imread(p_1)
-            #load preds for large grains
-            masks2 = io.imread(p_2)
-            file_id = Path(img).stem
-            #filter first with regular quality filters and then split along size_threshold
-            m1,_ = grainsizing.filter_by_threshold_size(masks1,mute=mute,filters=filters,threshold=threshold,remove='large')
-            m2,props2 = grainsizing.filter_by_threshold_size(masks2,mute=mute,filters=filters,threshold=threshold,remove='small')
-            if not any(x is None for x in [m1,m2,props2]):
-                #adapt label numbers to ensure no duplicates
-                m1 = np.where(m1 > 0, m1 + np.max(props2['label']), m1) # use not length but max value!
-                if remove_intersecting == True:
-                    m3 = np.where(m2 > 0, m1, m2) #create array for intersecting preds
-                    conflicting_labels = np.unique(m3) #get labels of conflicting/intersecting grains
-                    for key in conflicting_labels:
-                        m1[m1 == key]=0  #remove entire grain for intersecting preds from small preds
-                #combine masks
-                combined = np.where(m2 == 0, m2 + m1, m2) #simple priority for large grains
-            else:
-                print(f'Could not combine preds for {file_id} due to an empty prediction! Using grains from one inferrence only.')
-                combined = m1
-            if tar_dir == '':
-                    data_path=f'{Path(img).parent}/predictions/'
-                    os.makedirs(data_path,exist_ok=True)
-            else:
-                data_path = tar_dir
-            filename_i = f'{data_path}/{file_id}_{model_id}_combined_pred.tif'
-            cv2.imwrite(filename_i, combined)
-            if do_composites == True:
-                plotting.do_composite(img,filename_i,data_path,file_id,model_id=f'{model_id}_combined', tar_dir=tar_dir)
-            if mute == False:
-                print(file_id)
+        masks1 = io.imread(p_1)
+        #load preds for large grains
+        masks2 = io.imread(p_2)
+        file_id = Path(img).stem
+        #filter first with regular quality filters and then split along size_threshold
+        m1,_ = grainsizing.filter_by_threshold_size(masks1,mute=mute,filters=filters,threshold=threshold,remove='large')
+        m2,props2 = grainsizing.filter_by_threshold_size(masks2,mute=mute,filters=filters,threshold=threshold,remove='small')
+        
+        if not any(x is None for x in [m1,m2,props2]):
+            #adapt label numbers to ensure no duplicates
+            m1 = np.where(m1 > 0, m1 + np.max(props2['label']), m1) # use not length but max value!
+            if remove_intersecting == True:
+                m3 = np.where(m2 > 0, m1, m2) #create array for intersecting preds
+                conflicting_labels = np.unique(m3) #get labels of conflicting/intersecting grains
+                for key in conflicting_labels:
+                    m1[m1 == key]=0  #remove entire grain for intersecting preds from small preds
+            #combine masks
+            combined = np.where(m2 == 0, m2 + m1, m2) #simple priority for large grains
+        else:
+            print(f'Could not combine preds for {file_id} due to an empty prediction! Using grains from one inferrence only.')
+            combined = m1
+        if tar_dir == '':
+                data_path=f'{Path(img).parent}/predictions/'
+                os.makedirs(data_path,exist_ok=True)
+        else:
+            data_path = tar_dir
+        filename_i = f'{data_path}/{file_id}_{model_id}_combined_pred.tif'
+        cv2.imwrite(filename_i, combined)
+        if do_composites == True:
+            plotting.do_composite(img,filename_i,data_path,file_id,model_id=f'{model_id}_combined', tar_dir=tar_dir)
+        if mute == False:
+            print(file_id)
+
     return 
 
 def eval_image(y_true, y_pred, thresholds=[0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9]):
@@ -589,10 +628,10 @@ def eval_image(y_true, y_pred, thresholds=[0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8,
     preds (float) - predicted mask
     
     """
+
     ap, tp, fp, fn = metrics.average_precision(label(y_true),label(y_pred),threshold=thresholds)
     iout, preds = metrics.mask_ious(label(y_true),label(y_pred))
-    #j_score = jaccard_score(y_true, y_pred,average="macro")
-    #f1 = f1_score(y_true,y_pred,average="macro")
+
     return ap, tp, fp, fn, iout, preds
 
 def eval_set(imgs, lbls, preds, data_id='', tar_dir='',
@@ -622,6 +661,7 @@ def eval_set(imgs, lbls, preds, data_id='', tar_dir='',
 
     """
     eval_results={}
+
     for idx,im in enumerate(imgs):
         img_id = Path(im).stem
         img = io.imread(str(im))
@@ -646,6 +686,7 @@ def eval_set(imgs, lbls, preds, data_id='', tar_dir='',
                 ap = np.zeros(len(thresholds))
 
         eval_results[idx] = {'id':img_id,'img':img, 'ap':ap, 'iout':iout,}
+
     if save_results==True:
         if tar_dir != '':
             os.makedirs(Path(tar_dir), exist_ok=True)
@@ -658,6 +699,7 @@ def eval_set(imgs, lbls, preds, data_id='', tar_dir='',
                 export = f'{data_id}_eval_res.pkl'
         with open(str(export), 'wb') as f:
             pickle.dump(eval_results, f)
+
     if return_results == True:
         return eval_results
     
@@ -667,6 +709,7 @@ def eval_wrapper(pred_list, imgs, filterstrings, taglist, filters=None,
     Wrapper for eval_set to evaluate multiple predictions on the same dataset
     """
     res_list, tt_list,preds_fil_sort_list = [],[],[]
+
     for i in range(len(pred_list)):
         preds_fil_sort = map_preds_to_imgs(pred_list[i],imgs,p_string=filterstrings[i],m_string=m_string)
         test_idxs = find_test_idxs(imgs)
@@ -675,6 +718,7 @@ def eval_wrapper(pred_list, imgs, filterstrings, taglist, filters=None,
         res_list.append(i_res)
         tt_list.append(test_idxs)
         preds_fil_sort_list.append(preds_fil_sort)
+
     return res_list, tt_list, preds_fil_sort_list
 
 def map_preds_to_imgs(preds, imgs, p_string='', m_string=''):
@@ -691,8 +735,8 @@ def map_preds_to_imgs(preds, imgs, p_string='', m_string=''):
     Returns
     ------------
     new_preds (list) - List of matched predictions paths
-
     """
+
     new_preds = []
     for kk in range(len(imgs)):
         if m_string:
@@ -706,8 +750,10 @@ def map_preds_to_imgs(preds, imgs, p_string='', m_string=''):
                 img_id2 = Path(preds[k]).stem
             if img_id == img_id2:
                 new_preds.append(preds[k])
+
     if not new_preds:
         print(p_string,' - Could not match prediction to images!')
+
     return new_preds
 
 def find_test_idxs(lbls):
@@ -721,24 +767,29 @@ def find_test_idxs(lbls):
     Return
     ------------
     test_idxs (list) - List of indices of the test images
-
     """ 
+
     test_idxs = []
+
     for idx, x in enumerate(lbls):
         if 'test' in x:
             test_idxs.append(idx)
+
     return test_idxs
 
 def map_res_to_imgs(res_dict, imgs):
     """
     Match results to images based on the file name.
     """
+
     new_res = {}
+
     for kk in range(len(imgs)):
         img_id = Path(imgs[kk]).stem
         for k in range(len(res_dict)):
             if img_id == res_dict[k]['id']:
                 new_res[kk] = res_dict[k]
+
     return new_res
 
 def get_stats_for_res(preds, res_dict, test_idxs=None):
@@ -754,16 +805,17 @@ def get_stats_for_res(preds, res_dict, test_idxs=None):
     Returns
     ------------
     res_stats (list) - List of average precision stats
-
     """
 
     tpreds, taps50, tamaps = [],[],[]
     ttpreds, ttaps50, ttamaps = [],[],[]
+
     for i in range(len(preds)):
         a = regionprops_table((label(io.imread(str(preds[i])))))
         napred = len(a['label'])
         aap50 = res_dict[i]['ap'][0]
         amap = res_dict[i]['ap'][0:9].mean()
+        
         if test_idxs:
             if i < len(test_idxs):
                 tpreds.append(napred)
@@ -779,6 +831,7 @@ def get_stats_for_res(preds, res_dict, test_idxs=None):
             ttamaps.append(amap)
     res_stats = [np.sum(tpreds),np.mean(taps50),np.std(taps50),np.mean(tamaps),np.std(tamaps),
                   np.sum(ttpreds),np.mean(ttaps50),np.std(ttaps50),np.mean(ttamaps),np.std(ttamaps)]
+    
     return res_stats
 
 def get_stats_for_run(pred_list, res_list, titles,
@@ -789,6 +842,7 @@ def get_stats_for_run(pred_list, res_list, titles,
 
     cols = ['model','n_pred_test','mAP50_test','std','mAP50_90_test','std','n_pred_train','mAP50_train','std','mAP50_90_train','std']
     res_stats = pd.DataFrame(columns=cols)
+
     for j in range(len(pred_list)):
         sorted = map_preds_to_imgs(pred_list[j],labels,p_string=p_string_list[j],m_string='_mask')
         if test_idxs_list:
@@ -796,6 +850,7 @@ def get_stats_for_run(pred_list, res_list, titles,
         else:
             entry = get_stats_for_res(sorted,res_list[j])
         res_stats.loc[j] = [titles[j]]+entry
+
     return res_stats
 
 def get_style_vectors(do_inference=True, tar_dir='', model='default', use_gpu=True,
@@ -803,12 +858,14 @@ def get_style_vectors(do_inference=True, tar_dir='', model='default', use_gpu=Tr
     """
     Use to define.
     """
+
     if model == 'default':
         homepath = Path.home().joinpath('imagegrains')
         if cp_version > 3:
             model = f'{homepath}/models/IG2_full_set_cp_SAM'
         else:   
             model = f'{homepath}/models/IG2_full_set.200525'
+
     if not model:
         try:
             if cp_version > 3:
@@ -817,13 +874,16 @@ def get_style_vectors(do_inference=True, tar_dir='', model='default', use_gpu=Tr
                 model = f'{homepath}/models/IG2_full_set.200525'
         except:
             pass
+
     if tar_dir:
         os.makedirs(tar_dir, exist_ok=True)
+
     if do_inference == True:
         if im_paths:
             print(f'Running inference for styles with {Path(model).name}...')
             model = models.CellposeModel(gpu=use_gpu,pretrained_model=model)
             test_styles,train_styles,testnames,trainnames,testpaths,trainpaths = [],[],[],[],[],[]
+
             for path in im_paths:
                 _,_,styles,ids,imgs=predict_folder(path,model,min_size=-1, mute=True,return_results=True)
                 for styli,idi,imgi in zip(styles,ids,imgs):
@@ -836,7 +896,6 @@ def get_style_vectors(do_inference=True, tar_dir='', model='default', use_gpu=Tr
                         train_styles.append(styli)
                         trainnames.append(idi)
                         trainpaths.append(imgi)
-
             res_dict = {'train':train_styles, 'train_ids':trainnames,'train_paths':trainpaths,
                         'test':test_styles,'test_ids':testnames,'test_paths':testpaths}
             with open(f'{tar_dir}/res_tSNE.pkl', 'wb') as handle:
@@ -845,6 +904,7 @@ def get_style_vectors(do_inference=True, tar_dir='', model='default', use_gpu=Tr
             print('No path to images provided!')
             return [],[],[],[],[],[]
     else:
+
         if not res_file:
             try: 
                 homepath = homepath = Path.home().joinpath('imagegrains')
@@ -870,6 +930,7 @@ def get_style_vectors(do_inference=True, tar_dir='', model='default', use_gpu=Tr
         except:
             trainpaths,testpaths = [],[]
         pkl_file.close()
+
     return train_styles, trainnames, trainpaths, test_styles, testnames,testpaths
 
 def keep_tif_crs(imgs, preds, mute=True):
@@ -884,9 +945,11 @@ def keep_tif_crs(imgs, preds, mute=True):
     mute (bool (optional, default=True)) - Flag for muting console output
     
     """
+
     try: 
         from osgeo import gdal
         gdal.UseExceptions()
+
         try:
             for im,pr in zip(imgs,preds):
                 #copy tfw file if existing
@@ -908,6 +971,7 @@ def keep_tif_crs(imgs, preds, mute=True):
             if mute == False:
                 print('>> Georeference of tif/tiff files incomplete. Predictions might not be correctly referenced.')
             pass
+
     except ModuleNotFoundError:
         if mute == False:
             print('>> GDAL not installed. Please install GDAL to keep CRS info for GeoTIFF files.')

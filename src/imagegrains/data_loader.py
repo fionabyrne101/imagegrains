@@ -125,13 +125,15 @@ def find_data(image_path, mask_str='mask', im_str='', im_format='jpg', mask_form
     train_masks (list) - List of paths to the training masks
     test_images (list) - List of paths to the test images
     test_masks (list) - List of paths to the test masks
-
     """
+
     try:
         dirs = next(os.walk(Path(image_path)))[1]
     except StopIteration:
         dirs=[]
+
     working_directory = []
+
     if not dirs:
         working_directory = Path(image_path)
         train_images = find_imgs_masks(working_directory,format=im_format,filter_str=im_str)
@@ -140,15 +142,14 @@ def find_data(image_path, mask_str='mask', im_str='', im_format='jpg', mask_form
     else:
         for dir in dirs:
             if 'test' in dir:
-                #working_directory = str(image_path+'/test/')
                 working_directory = f'{Path(image_path)}/test/'
                 test_images = find_imgs_masks(working_directory,format=im_format,filter_str=im_str)
                 test_masks = find_imgs_masks(working_directory,format=mask_format,filter_str=mask_str)
             if 'train' in dir:
-                #working_directory = str(image_path+'/train/')
                 working_directory = f'{Path(image_path)}/train/'
                 train_images = find_imgs_masks(working_directory,format=im_format,filter_str=im_str)
                 train_masks = find_imgs_masks(working_directory,format=mask_format,filter_str=mask_str)
+
     return train_images,train_masks,test_images,test_masks
 
 def find_imgs_masks(image_path, format='', filter_str=''):
@@ -164,10 +165,9 @@ def find_imgs_masks(image_path, format='', filter_str=''):
     Returns:
     ------------
     ret_list (list) - List of paths to the images
-
     """
+
     ret_list = natsorted(glob(f'{Path(image_path)}/*{filter_str}*.{format}'))
-    #ret_list = natsorted(glob(image_path+'/*'+filter_str+'*.'+format))
     return ret_list
 
 def dataset_loader(image_directories, image_format='jpg', label_format='tif',
@@ -189,9 +189,10 @@ def dataset_loader(image_directories, image_format='jpg', label_format='tif',
     imgs (list) - list of images
     lbls (list) - list of labels
     preds (list) - list of predictions      
-    
     """
+
     imgs,lbls,preds = [],[],[]
+
     if type(image_directories) == list:
         dirs = []
         for x in range(len(image_directories)):
@@ -204,14 +205,14 @@ def dataset_loader(image_directories, image_format='jpg', label_format='tif',
             dirs = next(os.walk(Path(image_directories)))[1]
         except StopIteration:
             dirs=[]
+
     image_directory = []
+    
     if dirs:
         for dir in dirs:
             if 'test' in dir:
-                #image_directory += [str(image_directories+'/test/')]
                 image_directory += [f'{Path(image_directories)}/test/']
             if 'train' in dir:
-                #image_directory += [str(image_directories+'/train/')]
                 image_directory += [f'{Path(image_directories)}/train/']
             if 'predictions' in dir:
                 image_directory += [f'{Path(image_directories)}/predictions/']
@@ -225,6 +226,7 @@ def dataset_loader(image_directories, image_format='jpg', label_format='tif',
                 imgs1,lbls1,preds1 = load_from_folders(image_directory,image_format=image_format,label_format=label_format,pred_format=pred_format,label_str=label_str,pred_str=pred_str)
                 imgs += imgs1
                 lbls += lbls1
+    
     if not image_directory:
         image_directory = image_directories
         imgs1,lbls1,preds1 = load_from_folders(image_directory,image_format=image_format,label_format=label_format,pred_format=pred_format,label_str=label_str,pred_str=pred_str)
@@ -256,35 +258,37 @@ def load_from_folders(image_directory, label_directory='', pred_directory='',
     imgs (list) - list of images
     lbls (list) - list of labels
     preds (list) - list of predictions
-
     """
+
     if label_directory:
-        #lbls = natsorted(glob(label_directory+'/*'+label_str+'*.'+label_format))
         lbls = natsorted(glob(f'{label_directory}/*{label_str}*.{label_format}'))
     else:
-        #lbls = natsorted(glob(image_directory+'/*'+label_str+'*.'+label_format))
         lbls = natsorted(glob(f'{image_directory}/*{label_str}*.{label_format}'))
+    
     if pred_directory:
-        #preds = natsorted(glob(pred_directory+'/*'+pred_str+'*.'+pred_format))
         preds = natsorted(glob(f'{pred_directory}/*{pred_str}*.{pred_format}'))
     else:
-        #preds = natsorted(glob(image_directory+'/*'+pred_str+'*.'+pred_format))
         preds = natsorted(glob(f'{image_directory}/*{pred_str}*.{pred_format}'))
         if not preds:
             preds = natsorted(glob(f'{image_directory}/predictions/*{pred_str}*.{pred_format}'))
+    
     imgs = natsorted(glob(f'{image_directory}/*.{image_format}'))
+    
     if not any(imgs) and not any(preds) and not any(lbls):
         print('Could not load any images and/or masks.')
     return imgs,lbls,preds
 
 def assert_work_dirs(data_dir, do_subfolders=False):
     working_directories = []
+
     try:
         dirs = next(os.walk(Path(data_dir)))[1]
     except StopIteration:
         dirs=[Path(f'{data_dir}/')]
+
     if not dirs:
         dirs=[Path(f'{data_dir}/')]
+
     for dir in dirs:
         if dir=='train':
             working_directories.append(Path(data_dir).joinpath(dir))
@@ -294,6 +298,7 @@ def assert_work_dirs(data_dir, do_subfolders=False):
             working_directories.append(Path(data_dir).joinpath(dir))
         if not working_directories:
             working_directories= [Path(data_dir)]
+
     return working_directories
 
 def load_eval_res(name, file_path=''):
@@ -308,10 +313,11 @@ def load_eval_res(name, file_path=''):
     Returns
     ------------
     eval_results (dict) - Dictionary of evaluation results
-
     """
+
     with open(f'{Path(file_path)}/{name}.pkl', 'rb') as f:
         eval_results = pickle.load(f)
+
     return eval_results
 
 def load_grain_set(file_dir, gsd_format='csv', gsd_str='grains'):
@@ -326,9 +332,9 @@ def load_grain_set(file_dir, gsd_format='csv', gsd_str='grains'):
 
     Returns
     -------
-    gsds (list) - list of grain size distributions
-            
+    gsds (list) - list of grain size distributions   
     """
+
     if type(file_dir) == list:
         dirs = []
         for x in range(len(file_dir)):
@@ -341,29 +347,36 @@ def load_grain_set(file_dir, gsd_format='csv', gsd_str='grains'):
             dirs = next(os.walk(Path(file_dir)))[1]
         except StopIteration:
             dirs=[]
+
     active_file_dir = []
+
     if dirs:
         gsds=[]
+
         for dir in dirs:
             if 'test' in dir:
-                    #active_file_dir += [str(file_dir+'/test/')]
                     active_file_dir += [f'{Path(file_dir)}/test/predictions/']
             if 'train' in dir:
-                    #active_file_dir += [str(file_dir+'/train/')]
                     active_file_dir += [f'{Path(file_dir)}/train/predictions/']
             if 'predictions' in dir:
                     active_file_dir += [f'{Path(file_dir)}/predictions/']
+
         for path in active_file_dir:
             gsds += gsds_from_folder(path,gsd_format=gsd_format,gsd_str=gsd_str)
+
             if not gsds:
                 active_file_dir = [file_dir]
+
                 for path in active_file_dir:
                     gsds += gsds_from_folder(path,gsd_format=gsd_format,gsd_str=gsd_str)
+    
     if not active_file_dir:
         gsds=[]
         active_file_dir = [file_dir]
+
         for path in active_file_dir:
             gsds += gsds_from_folder(path,gsd_format=gsd_format,gsd_str=gsd_str)
+
     return gsds
 
 def read_grains(file_path, sep=',', column_name='ell: b-axis (px)'):
@@ -383,6 +396,7 @@ def read_grains(file_path, sep=',', column_name='ell: b-axis (px)'):
 
     df = pd.read_csv(Path(file_path),sep=sep)
     grains = df[column_name].values
+
     return grains
     
 def gsds_from_folder(file_path, gsd_format='csv', gsd_str='grains'):
@@ -400,10 +414,10 @@ def gsds_from_folder(file_path, gsd_format='csv', gsd_str='grains'):
     gsds (list) - list of grain size distributions files
     """
 
-    #gsds_raw = natsorted(glob(file_path+'/*'+gsd_str+'*.'+gsd_format))
     gsds_raw = natsorted(glob(f'{Path(file_path)}/*{gsd_str}*.{gsd_format}'))
     gsds = []
     [gsds.append(gsd) for gsd in gsds_raw]
+
     return gsds
 
 def read_set_unc(file_path, unc_str='_perc_uncert', file_format='txt'):
@@ -421,29 +435,33 @@ def read_set_unc(file_path, unc_str='_perc_uncert', file_format='txt'):
     mcs (list) - list of uncertainty files
     ids (list) - list of IDs (file names) for the uncertainty files
     """
+
     try:
         dirs = next(os.walk(Path(file_path)))[1]
     except StopIteration:
         dirs = []
+
     active_file_dir = []
+
     if dirs:
         if 'test' in dirs:
-            #active_file_dir = [str(file_path+'/test/')]
             active_file_dir = [f'{Path(file_path)}/test/']
         if 'train' in dirs:
-            #active_file_dir += [str(file_path+'/train/')]
             active_file_dir = [f'{Path(file_path)}/train/']
         if 'predictions' in dirs:
             active_file_dir = [f'{Path(file_path)}/predictions/']
+
     if not active_file_dir:
         active_file_dir = [Path(file_path)]
+
     mcs,ids=[],[]
+
     for path in active_file_dir:
-        #mc= natsorted(glob(path+'/*'+unc_str+'*.'+file_format))
         mc= natsorted(glob(f'{Path(path)}/*{unc_str}*.{file_format}'))
         id_i = [Path(mc[idx]).stem for idx in range(len(mc))]
         mcs+=mc
         ids+=id_i
+
     return mcs, ids
 
 def read_unc(path,sep=',',file_format='txt'):
@@ -459,14 +477,16 @@ def read_unc(path,sep=',',file_format='txt'):
     Returns
     ------------
     df (pandas DataFrame) - Dataframe containing the uncertainty data
-
     """
 
     df = pd.read_csv(Path(path),sep=sep, header=None)
+
     if file_format == 'txt':
         df = df.T
+
     df.columns = ['data','med','uci','lci']
     df = df.round(decimals=2)
+
     return df
 
 def get_img_name_for_summary(file_path, imgs = None, p_string= '_full',overwrite = True):
@@ -477,11 +497,14 @@ def get_img_name_for_summary(file_path, imgs = None, p_string= '_full',overwrite
     df = pd.read_csv(Path(file_path))
     imgs_stem = [Path(img).stem for img in imgs]
     imgs_name = [Path(img).name for img in imgs]
+
     for i in range(len(df)):
         a=Path(df['Image/Masks'][i]).stem.split(p_string)[0]
         for j,b in enumerate(imgs_stem):
             if a==b:
                 df.at[i,'Image_Name'] = imgs_name[j]
+
     if overwrite == True:
         df.to_csv(Path(file_path), index = False)
+        
     return df

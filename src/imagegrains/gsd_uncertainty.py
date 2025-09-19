@@ -39,6 +39,7 @@ def p_c_fripp(n, p, z):
     p_uu (float) - upper confidence bound
 
     """
+
     s = 10 * (np.sqrt((n * p * (1 - p)) / n))
     #z = 1.96
     p_uu = (p*100) + (s * z)
@@ -61,6 +62,7 @@ def pbinom_diff(a, b, n, p):
     p_c (float) - binomial difference
 
     """
+
     return(stats.binom.cdf(b-1, n, p) - stats.binom.cdf(a-1, n, p))
 
 def QuantBD(n, p, alpha):
@@ -113,6 +115,7 @@ def QuantBD(n, p, alpha):
     # take the number of measurements and translate
     # to lower and upper percentiles
     p_l, p_u = lu_approx[0]/n, lu_approx[1]/n
+
     return p_l, p_u
 
 
@@ -136,10 +139,11 @@ def bootstrapping(gsd,num_it=1000,CI_bounds=[2.5,97.5]):
     -------
     med_list (list) - median of bootstrapped distributions
     upper_CI (list) - upper confidence interval of bootstrapped distributions
-    lower_CI (list) - lower confidence interval of bootstrapped distributions
-            
+    lower_CI (list) - lower confidence interval of bootstrapped distributions        
     """
+
     rand = np.random.choice(gsd, (len(gsd), num_it))
+
     if len(rand) >= 1:
         med_list, upper_CI, lower_CI = [],[],[]
         for p in range(100):
@@ -152,6 +156,7 @@ def bootstrapping(gsd,num_it=1000,CI_bounds=[2.5,97.5]):
         med_list = np.zeros(100)
         upper_CI = np.zeros(100)
         lower_CI = np.zeros(100)
+
     return med_list, upper_CI, lower_CI
 
 def MC_with_length_scale(gsd,scale_err,length_err,method='truncnorm',num_it=1000,cutoff=0,mute=False):
@@ -171,12 +176,14 @@ def MC_with_length_scale(gsd,scale_err,length_err,method='truncnorm',num_it=1000
     Returns
     -------
     res_list (list) - list of percentile distributions
-
     """
+
     gsd = np.delete(np.array(gsd), np.where(np.array(gsd) <= cutoff))
     res_list = []
+
     if mute == False:
-        print('Simulating %s distributions'% str(num_it),'with %s grains each...' %round(len(gsd)))     
+        print('Simulating %s distributions'% str(num_it),'with %s grains each...' %round(len(gsd)))
+
     with Pool(processes=cpu_count()-1) as pool:
         res_list=pool.map_async(partial(MC_loop, gsd=gsd,length_err=length_err,scale_err=scale_err,method=method,cutoff=cutoff), range(num_it)).get(num_it)
     return res_list
@@ -185,6 +192,7 @@ def MC_loop(arg,gsd=None,length_err=0,scale_err=.1,method ='truncnorm',cutoff=0)
     """
     Monte Carlo loop for percentile uncertainty with length and scale error
     """
+
     rand_p = np.random.choice(gsd,len(gsd))
     #shape,lo_c,s_cale = stats.lognorm.fit(rand_p)
     rand_p_new = ([])
@@ -208,6 +216,7 @@ def MC_loop(arg,gsd=None,length_err=0,scale_err=.1,method ='truncnorm',cutoff=0)
     #                    rand_length_err = stats.norm.rvs(loc = 0, scale = length_err)
     #                   rand_g = (rand_gi + rand_length_err) * rand_scale_err
                 rand_p_new = np.append(rand_p_new,rand_g)
+
     return rand_p_new
 
 
@@ -393,11 +402,7 @@ def MC_SfM_OM_loop(arg,gsd=None,avg_res=1,alt=5,alt_std=1,method ='truncnorm',
                     #rand_gi = stats.norm.rvs(loc=rand_gi,scale=0.3)
                     #rand_g = (rand_gi + rand_length_err) * rand_scale_err
             rand_p_new = np.append(rand_p_new,rand_g)
-        """Edge handling"""
-        ## filtering values above some maximum threshold
-        #rand_p_new = np.delete(rand_p_new,np.where(rand_p_new > 2*np.max(gsd)))                                     
-        ## filtering values below cutoff threshold
-        #rand_p_new = np.delete(rand_p_new,np.where(rand_p_new<cutoff-length_std))
+
     return rand_p_new
 
 def get_MC_percentiles(res_list,CI_bounds=[2.5,97.5],mute=True):
@@ -413,11 +418,12 @@ def get_MC_percentiles(res_list,CI_bounds=[2.5,97.5],mute=True):
     -------
     med_list (list): list of median values
     upper_CI (list): list of upper CI values
-    lower_CI (list): list of lower CI values
-            
-    """                                                   
+    lower_CI (list): list of lower CI values   
+    """
+
     # get percentiles in 1% steps (shape = [n[100]])
     D_list = []
+
     for _,res in enumerate(res_list):
         if len(res) <1:
             if mute == False:
@@ -426,14 +432,17 @@ def get_MC_percentiles(res_list,CI_bounds=[2.5,97.5],mute=True):
         pc = [np.percentile(res,pi) for pi in range(100)]
         D_list.append(pc)
     # map list to transposed array (i.e., each line = one D-value, each column = one GSD; shape = 100 x n)
+
     per_array = np.array(D_list)
     a = per_array.transpose()
     # get estimates for upperCI,lowerCI and median & the percentiles for the input
     med_list, upper_CI, lower_CI = [],[],[]
+
     for _,a_i in enumerate(a):
         lower_CI.append(np.percentile(a_i ,CI_bounds[0]))
         upper_CI.append(np.percentile(a_i ,CI_bounds[1]))
-        med_list.append(np.percentile(a_i ,50))                                                             
+        med_list.append(np.percentile(a_i ,50))
+
     return med_list, upper_CI, lower_CI
 
 
@@ -469,28 +478,32 @@ MC_method='truncnorm',MC_cutoff=0,avg_res=None,mute=False,save_results=True,tar_
     Returns
     -------
     res_dict (dict): dictionary of results
-
     """
+
     if inp_dir:
-        #gsds = natsorted(glob(inp_dir+'/*'+grain_str+'*.csv'))
         inp_dir = str(Path(inp_dir).as_posix())
         gsds = natsorted(glob(f'{Path(inp_dir)}/*{grain_str}*.csv'))
+
     if not gsds:
         print('No GSD(s) provided!')
         return
+    
     if not res_dict:
         res_dict = {}
+
     for idx in tqdm(range(len(gsds)),desc=f'{column_name} {method}',unit='gsd',colour='BLUE',position=0,leave=True):
         if scale_err:
             if type(scale_err)==list: 
                 scale_err_i=scale_err[idx]
             else:
                 scale_err_i=scale_err
+
         if length_err:
             if type(length_err)==list: 
                 length_err_i=length_err[idx]
             else:
                 length_err_i = length_err
+
         if sfm_error:
             if len(sfm_error)>1:
                 sfm_error_i = sfm_error[idx]
@@ -498,6 +511,7 @@ MC_method='truncnorm',MC_cutoff=0,avg_res=None,mute=False,save_results=True,tar_
                 sfm_error_i = sfm_error[0]
         else:   
             sfm_error_i = {}
+
         if avg_res:
             if len(avg_res)>1:
                 avg_res_i = avg_res[idx]
@@ -505,6 +519,7 @@ MC_method='truncnorm',MC_cutoff=0,avg_res=None,mute=False,save_results=True,tar_
                 avg_res_i = avg_res[0]
         else:
             avg_res_i = 1
+
         if inp_dir:
             med_list, upper_CI, lower_CI, gsd_list, gsd_id = gsd_uncertainty(inp_path=gsds[idx],sep=sep,column_name=column_name,conv_factor=conv_factor,method=method,scale_err=scale_err_i,length_err=length_err_i,
             sfm_error=sfm_error_i,num_it=num_it,CI_bounds=CI_bounds, MC_method=MC_method,MC_cutoff=MC_cutoff,avg_res=avg_res_i,mute=mute,save_results=save_results,tar_dir=tar_dir,return_results=True,sfm_type=sfm_type,id_string=id_string)
@@ -513,6 +528,7 @@ MC_method='truncnorm',MC_cutoff=0,avg_res=None,mute=False,save_results=True,tar_
                 gsd_id_i = str(idx)
             else:
                 gsd_id_i = gsd_id[idx]
+
             if all(np.unique(gsds[idx])) == 0:
                 if mute == False:
                     print('Empty GSD')
@@ -523,6 +539,7 @@ MC_method='truncnorm',MC_cutoff=0,avg_res=None,mute=False,save_results=True,tar_
                 sfm_error=sfm_error_i,num_it=num_it,CI_bounds=CI_bounds, MC_method=MC_method,MC_cutoff=MC_cutoff,avg_res=avg_res_i,mute=mute,save_results=save_results,tar_dir=tar_dir,return_results=True,sfm_type=sfm_type,id_string=id_string)
                 if return_results==True:
                     res_dict[str(gsd_id_i)]=[med_list, upper_CI, lower_CI, gsd_list]
+
     return res_dict
 
 def gsd_uncertainty(gsd=None,gsd_id='',inp_path='',sep=',',column_name='',conv_factor=1,method='bootstrapping',scale_err=0.1,length_err=1,sfm_error=None,num_it=1000,CI_bounds=[2.5,97.5],
@@ -560,11 +577,12 @@ MC_method='truncnorm',MC_cutoff=0,avg_res=1,mute=False,save_results=False,tar_di
     lower_CI (list): list of lower CI values
     gsd_list (list): list of GSDs
     gsd_id (str): ID of GSD
-
     """
+
     if all(np.unique(gsd)) == 0:
         if mute == False:
             print('Empty GSD')
+
         if return_results == True:
             return [], [], [], [], gsd_id
     else:
@@ -576,25 +594,31 @@ MC_method='truncnorm',MC_cutoff=0,avg_res=1,mute=False,save_results=False,tar_di
             else:
                 df = pd.read_csv(inp_path , sep=sep)
                 gsd_id = Path(inp_path).stem
+
             out_dir = os.path.dirname(gsd)
+
             if not column_name:
                 try:
                     df['ell: b-axis (mm)']
                     column_name = 'ell: b-axis (mm)'
                 except:
                     pass
+
                 try:
                     df['ell: b-axis (px)']
                     column_name = 'ell: b-axis (px)'
                 except:
                     print('No data found!')
                     return
+                
             gsd = np.sort(df[column_name].to_numpy())*conv_factor
-            #gsd_id = inp_path.split('\\')[len(inp_path.split('\\'))-1].split('.')[0]
+
         if not avg_res:
             avg_res=1
+
         med_list, upper_CI, lower_CI, gsd_list = uncertainty(gsd,method=method,scale_err=scale_err,length_err=length_err,
         sfm_error=sfm_error,num_it=num_it,CI_bounds=CI_bounds,MC_method=MC_method,MC_cutoff=MC_cutoff,avg_res=avg_res,mute=mute,sfm_type=sfm_type)
+
         if save_results == True:
             if tar_dir != '':
                 tar_dir = str(Path(tar_dir).as_posix())
@@ -607,6 +631,7 @@ MC_method='truncnorm',MC_cutoff=0,avg_res=1,mute=False,save_results=False,tar_di
                     out_dir = Path(inp_path).parent
                 #out_dir = inp_path.split('\\')[0]+'/'
             outpath = Path(f'{out_dir}/{gsd_id}{method}{id_string}_perc_uncert.txt')
+
             with open(outpath, 'w') as f:
                 fwriter = csv.writer(f,delimiter=';')
                 fwriter.writerow(gsd_list)
@@ -614,8 +639,10 @@ MC_method='truncnorm',MC_cutoff=0,avg_res=1,mute=False,save_results=False,tar_di
                 fwriter.writerow(upper_CI)
                 fwriter.writerow(lower_CI)
                 f.close()
+
                 if mute == False:
-                    print('Results for',gsd_id + id_string + '_perc_uncert','successfully saved.') 
+                    print('Results for',gsd_id + id_string + '_perc_uncert','successfully saved.')
+
         if return_results == True:
             return med_list, upper_CI, lower_CI, gsd_list, gsd_id
 
@@ -624,12 +651,15 @@ MC_method='truncnorm',MC_cutoff=0,avg_res=1,mute=False,sfm_type=''):
     """
     Calculate uncertainty of a GSD. 
     """
+
     med_list = []
     if method == 'bootstrapping':
         med_list, upper_CI, lower_CI = bootstrapping(gsd,num_it=num_it,CI_bounds=CI_bounds)
+
     if method == 'MC':
         res_list = MC_with_length_scale(gsd,scale_err,length_err,method=MC_method,num_it=num_it,cutoff=MC_cutoff,mute=mute)
         med_list, upper_CI, lower_CI = get_MC_percentiles(res_list,CI_bounds=CI_bounds, mute = mute)
+
     if method == 'MC_SfM':
         if sfm_type == 'OM':
             res_list = MC_with_sfm_err_OM(gsd,sfm_error=sfm_error,avg_res=avg_res,num_it=num_it,cutoff=MC_cutoff,method=MC_method,mute=mute)
@@ -637,32 +667,34 @@ MC_method='truncnorm',MC_cutoff=0,avg_res=1,mute=False,sfm_type=''):
         else:
             res_list = MC_with_sfm_err_SI(gsd,sfm_error=sfm_error,avg_res=avg_res,num_it=num_it,cutoff=MC_cutoff,method=MC_method,mute=mute)
             med_list, upper_CI, lower_CI = get_MC_percentiles(res_list,CI_bounds=CI_bounds, mute = mute)
+
     if len(gsd) >= 1:
         gsd_list = [np.percentile(gsd, p, axis=0) for p in range(100)]
     else:
         gsd_list = np.zeros(100)
+
     if med_list is not None:
         if len(med_list) <1:
             med_list = np.zeros(100)
             med_list = np.zeros(100)
             upper_CI = np.zeros(100)
             lower_CI = np.zeros(100)
-    #gsd_list=[]
-    #for p in range(100):    
-    #    inp = np.percentile(gsd,p)
-    #    gsd_list.append(inp)
+
     return med_list, upper_CI, lower_CI, gsd_list
 
 def compile_sfm_error(from_file=''):
     """
     Compiles sfm error from file.
     """
+
     if from_file:
         sfm_err_l,sfm_error_i = [],{}
         err_df = pd.read_csv(from_file)
+
         for row in range(len(err_df)):    
             for col in err_df:
                 sfm_error_i[col] =err_df[col][row]
             sfm_err_l.append(sfm_error_i)
+
     return sfm_err_l
 

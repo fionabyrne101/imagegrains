@@ -27,6 +27,7 @@ def main():
     seg_args.add_argument('--save_composites', default=True, type=bool, help='Save a composite of all images and segmentation masks as .png files.')
     seg_args.add_argument('--second_diameter', default=None, type=float, help='Enables a two-step segmentation that will combine predictions at two different scales. It will use `diameter` (default: None) and expects the `second_diameter` to be >> `diamter`. Predictions are combined on a pixel basis.')
     seg_args.add_argument('--comb_threshold',default=None, type=float, help='If predictions from two scales are combined, this threshold (default=150) defines the cutoff above which grains from predictions with `second_diameter` will be used. Larger grains are prioritized.')
+    seg_args.add_argument('--max_size_fraction',default=0.4, type=float, help='Masks larger than max_size_fraction of total image size are removed.(default=0.4) defines the cutoff above which grains from predictions with `second_diameter` will be used. Larger grains are prioritized.')
 
     gs_args=parser.add_argument_group('Grain size estimation')
     gs_args.add_argument('--skip_grainsize', type=bool, default=False, help='Skip grain size estimation and only segment grains.')
@@ -65,8 +66,6 @@ def main():
 
     tar_dir = '' if args.out_dir == None else args.out_dirs
 
-    use_gpu = False if args.gpu else True
-
     if args.img_dir == None or os.path.exists(args.img_dir) == False:
         print('>> Please specify a valid input directory for images to segment.')
         exit()
@@ -92,7 +91,7 @@ def main():
 
     #segmentation
     if skip_segmentation == False:
-        segmentation_step(args,mute=mute,tar_dir=tar_dir,use_gpu=use_gpu)
+        segmentation_step(args,mute=mute,tar_dir=tar_dir)
     
     if skip_grainsize == True:
         print('>> Skipping grain size estimation.')
@@ -145,13 +144,17 @@ def main():
         gsd_step(resample_path,args,mute=mute,tar_dir=tar_dir,resampled=resampled)
 
 
-def segmentation_step(args,mute=False,tar_dir='',use_gpu=True):
+def segmentation_step(args,mute=False,tar_dir=''):
     keep_crs = True if args.keep_crs else False
-    if use_gpu == True:
+    if args.gpu == True:
         if torch.cuda.is_available() == True and mute == False:
             print('>> Using GPU: ',torch.cuda.get_device_name(0))
+        elif torch.backends.mps.is_available() == True and mute == False:
+            print('>> Using GPU: mps')
         elif torch.cuda.is_available() == False and mute== False:
             print('>> GPU not available - check if correct pytorch version is installed. Using CPU instead.')
+        
+        
     
     if __cp_version__ >3:
         if Path(args.model_dir).suffix == '' and 'cp_SAM' in str(args.model_dir):
@@ -166,24 +169,26 @@ def segmentation_step(args,mute=False,tar_dir='',use_gpu=True):
 
     imgs,_,_ = data_loader.dataset_loader(Path(args.img_dir),image_format=args.img_type)
     second_diameter = None if not args.second_diameter else args.second_diameter
+    config = {'max_size_fraction': args.max_size_fraction} if args.max_size_fraction != 0.4 else None
+
     if not second_diameter:
-        print('>> ImageGrains: Segmenting ',args.img_type,' images in ',args.img_dir)
+        print('>> ImageGrains: Segmenting ',args.img_type,' images in ',args.img_dir,'GPU:',args.gpu)
         _ = segmentation_helper.batch_predict(args.model_dir,args.img_dir,tar_dir=tar_dir,
-                                        image_format=args.img_type,use_GPU=use_gpu,diameter=args.diameter, min_size=args.min_size,
-                                            mute=mute,return_results=False,save_masks=True)
+                                        image_format=args.img_type,use_GPU=args.gpu,diameter=args.diameter, min_size=args.min_size,
+                                            mute=mute,return_results=False,save_masks=True,configuration=config)
     else:
-        print('>> ImageGrains: Segmenting ',args.img_type,' images in ',args.img_dir,'with diameter =',args.second_diameter)
+        print('>> ImageGrains: Segmenting ',args.img_type,' images in ',args.img_dir,'with diameter =',args.second_diameter,args.img_dir,'GPU:',args.gpu)
         path1 = f'{args.out_dir}/diam{int(second_diameter)}' if args.out_dir else f'{args.img_dir}/diam{int(second_diameter)}'
         os.makedirs(path1,exist_ok=True)
         _ = segmentation_helper.batch_predict(args.model_dir,args.img_dir,tar_dir=path1,
-                                        image_format=args.img_type,use_GPU=use_gpu,diameter=args.second_diameter, min_size=args.min_size,
-                                            mute=mute,return_results=False,save_masks=True)
+                                        image_format=args.img_type,use_GPU=args.gpu,diameter=args.second_diameter, min_size=args.min_size,
+                                            mute=mute,return_results=False,save_masks=True,configuration=config)
         print('>> ... and with diameter =',args.diameter)
         path2 = f'{args.out_dir}/diam{args.diameter}' if args.out_dir else f'{args.img_dir}/diam{args.diameter}'
         os.makedirs(path2,exist_ok=True)
         _ = segmentation_helper.batch_predict(args.model_dir,args.img_dir,tar_dir=path2,
-                                            image_format=args.img_type,use_GPU=use_gpu,diameter=args.diameter, min_size=args.min_size,
-                                                mute=mute,return_results=False,save_masks=True)
+                                            image_format=args.img_type,use_GPU=args.gpu,diameter=args.diameter, min_size=args.min_size,
+                                                mute=mute,return_results=False,save_masks=True,configuration=config)
         #Combine scales
         print('>> ImageGrains: Combining predictions...')
         _,_,preds_large= data_loader.dataset_loader(path1)
