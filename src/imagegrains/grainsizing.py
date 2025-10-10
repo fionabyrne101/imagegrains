@@ -15,8 +15,8 @@ from glob import glob
 
 from imagegrains import data_loader
 
-def batch_grainsize(data_dir,mask_format='tif',mask_str='',tar_dir='',filters=None,mute=False,outline_threshold=.5,
-properties=['label','area','orientation','minor_axis_length','major_axis_length','centroid','local_centroid','bbox'],fit_method='',
+def batch_grainsize(data_dir,mask_format='tif',mask_str='',tar_dir='',filters=None,mute=False,outline_threshold=.5,calculate_IRn=False,
+properties=['label','area', 'area_convex','perimeter_crofton','orientation','minor_axis_length','major_axis_length','centroid','solidity','eccentricity','local_centroid','bbox'],fit_method='',
 return_results=False,save_results=True,do_subfolders=False,resampled=False):
     """ Measures grainsizes in a dataset; can contain subfolders `train`,`test`. If do_subfolders is True, the function will also measure grainsizes in any subfolders of data_dir. 
 
@@ -29,7 +29,7 @@ return_results=False,save_results=True,do_subfolders=False,resampled=False):
     filters (dict (optional, default =None)) - dictionary of filters to apply to the grains
     mute (bool (optional, default =False)) - mute the output
     outline_threshold (float (optional, default =.5)) - Angular tolerance threshold for b-axis detection during outline fitting in °.
-    properties (list (optional, default =['label','area','orientation','minor_axis_length','major_axis_length','centroid','local_centroid'])) - list of properties to be extracted from the masks
+    properties (list (optional, default =['label','area', 'area_convex','perimeter_crofton','orientation','minor_axis_length','major_axis_length','solidity','eccentricity','centroid','local_centroid','bbox'])) - list of properties to be extracted from the masks
     fit_method (str (optional, default ='')) - method to fit the grain outlines. Options are,'convex_hull','mask_outline'. If fit_method is not specified, ellipsoidal fit will be used. ! Please note that using 'convex_hull' or 'mask_outline' will be slow.
     return_results (bool (optional, default =False)) - return the results as a list of pandas dataframes
     save_results (bool (optional, default =True)) - save the results as csv files
@@ -54,7 +54,7 @@ return_results=False,save_results=True,do_subfolders=False,resampled=False):
 
         if len(check_l)>0:
             res_grains_i,res_props_i,ids_i= grains_in_dataset(data_dir=working_directory,mask_format=mask_format,mask_str=mask_str,
-            tar_dir=tar_dir,filters=filters,mute=mute,outline_threshold=outline_threshold,properties=properties,fit_method=fit_method,
+            tar_dir=tar_dir,filters=filters,mute=mute,outline_threshold=outline_threshold,properties=properties,fit_method=fit_method,calculate_IRn=calculate_IRn,
             return_results=return_results,save_results=save_results,resampled=resampled)
 
             if return_results==True:
@@ -68,8 +68,8 @@ return_results=False,save_results=True,do_subfolders=False,resampled=False):
 
     return res_grains_l,res_props_l,ids_l
 
-def grains_in_dataset(inp_list=None,data_dir=None,mask_format='tif',mask_str='',tar_dir='',filters=None,mute=False,outline_threshold=.5,
-properties=['label','area','orientation','minor_axis_length','major_axis_length','centroid','local_centroid'],fit_method='',
+def grains_in_dataset(inp_list=None,data_dir=None,mask_format='tif',mask_str='',tar_dir='',filters=None,mute=False,outline_threshold=.5, calculate_IRn = False,
+properties=['label','area', 'area_convex','perimeter_crofton','orientation','minor_axis_length','major_axis_length','solidity','eccentricity','centroid','local_centroid'],fit_method='',
 return_results=False,save_results=True,image_res=None,set_id=None,resampled=False):
     """
     Measures grainsizes in a dataset.
@@ -83,7 +83,7 @@ return_results=False,save_results=True,image_res=None,set_id=None,resampled=Fals
     filters (dict (optional, default =None)) - dictionary of filters to apply to the grains
     mute (bool (optional, default =False)) - mute the output
     outline_threshold (float (optional, default =.5)) - Angular tolerance threshold for b-axis detection during outline fitting in °.
-    properties (list (optional, default =['label','area','orientation','minor_axis_length','major_axis_length','centroid','local_centroid'])) - list of properties to be extracted from the masks
+    properties (list (optional, default =['label','area', 'area_convex','perimeter_crofton','orientation','minor_axis_length','major_axis_length','solidity','eccentricity','centroid','local_centroid','bbox'])) - list of properties to be extracted from the masks
     fit_method (str (optional, default ='')) - method to fit the grain outlines. Options are'convex_hull','mask_outline'.
     return_results (bool (optional, default =False)) - return the results as a list of pandas dataframes
     save_results (bool (optional, default =True)) - save the results as csv files
@@ -126,7 +126,7 @@ return_results=False,save_results=True,image_res=None,set_id=None,resampled=Fals
                 image_res_i=image_res[idx]
             else:
                 image_res_i = []
-            props_df,props = grains_from_masks(masks,filters=filters,outline_threshold=outline_threshold,mute=mute,properties=properties,file_id=file_id,image_res=image_res_i,fit_method=fit_method)
+            props_df,props = grains_from_masks(masks,filters=filters,outline_threshold=outline_threshold,mute=mute,properties=properties,file_id=file_id,image_res=image_res_i,fit_method=fit_method,calculate_IRn=calculate_IRn)
             
             if save_results == True:
                 if tar_dir:
@@ -146,8 +146,8 @@ return_results=False,save_results=True,image_res=None,set_id=None,resampled=Fals
 
     return res_grains,res_props,ids 
 
-def grains_from_masks(masks,filters=None,mute=False,outline_threshold=.5,fit_method='',image_res=None,file_id='',
-properties=['label','area','orientation','minor_axis_length','major_axis_length','centroid','local_centroid']):
+def grains_from_masks(masks,filters=None,mute=False,outline_threshold=.5,fit_method='',image_res=None,file_id='', calculate_IRn = False, 
+properties=['label','area', 'area_convex','perimeter_crofton','orientation','minor_axis_length','major_axis_length','centroid','local_centroid','solidity','eccentricity']):
     """
     Measures grainsizes in single image dataset.
     
@@ -160,7 +160,7 @@ properties=['label','area','orientation','minor_axis_length','major_axis_length'
     fit_method (str (optional, default ='')) - method to fit the grain outlines. Options are'convex_hull','mask_outline'. 
     image_res (list (optional, default =None)) - list of image resolutions in µm/pixel
     file_id (str (optional, default ='')) - ID of the image
-    properties (list (optional, default =['label','area','orientation','minor_axis_length','major_axis_length','centroid','local_centroid'])) - list of properties to be extracted from the masks
+    properties (list (optional, default =['label','area', 'area_convex','perimeter_crofton','orientation','minor_axis_length','major_axis_length','solidity','eccentricity','centroid','local_centroid','bbox'])) - list of properties to be extracted from the masks
     
     Returns
     -------
@@ -214,17 +214,66 @@ properties=['label','area','orientation','minor_axis_length','major_axis_length'
             'bbox-0': 'bbox y1',
             'bbox-1': 'bbox x1',
             'bbox-2': 'bbox y2',
-            'bbox-3': 'bbox x2'
+            'bbox-3': 'bbox x2',
+            'solidity': 'convexity'
             }, inplace = True)
         
     except:
         print('Modified DataFrame structure - check results.')
 
+    if calculate_IRn == True:
+        props_df = isoperimetric_ratios(props_df, perimeter=None, return_IR = False)
+
     return props_df,props
+
+def isoperimetric_ratios(res_grains, perimeter='perimeter_crofton', return_IR = True, return_IRn = False):
+    """
+    Calculates the isoperimetric ratios (IR; Quick et al. 2019 (https://doi.org/10.1130/B35334.1); Szabó et al. 2015 (https://www.nature.com/articles/ncomms9366)),
+    and the normalized isoperimetric ratio (IRn) after Pokhrel et al. 2024 (https://doi.org/10.5194/esurf-12-515-2024)
+
+    Parameters
+    ----------
+    res_grains (pandas dataframe) - pandas dataframe containing the grain results
+    perimeter (str (optional, default ='perimeter_crofton')) - perimeter approximation to use. Options are 'perimeter' and 'perimeter_crofton'. Has to be included in properties list in grainsizing step. 
+    return_IR (bool (optional, default =False)) - Save the isoperimetric ratio.
+    return_IRn (bool (optional, default =False)) - Save the normalized isoperimetric ratio.  
+    
+    Returns
+    -------
+    res_grains (pandas dataframe) - pandas dataframe containing the updated grain results
+
+    Notes
+    -----
+    Normalized Isoperimetric Ratio (IRn) values might exceed 1 in some cases, e.g., for strongly elongated grains and for bad grain approximations despite such values being theoretically impossible (cf. Appendix 2 of Quick et al., 2019)
+    """
+
+    if not perimeter:
+        perimeter = 'perimeter_crofton' if 'perimeter_crofton' in res_grains.columns else 'perimeter'
+
+    if perimeter in res_grains.columns:
+        pass
+    else:
+        print('>> No perimeter in properties.')
+        return
+    a=np.round(res_grains['ell: a-axis (px)'],1)
+    b=np.round(res_grains['ell: b-axis (px)'],1)
+
+    ir = (4 * np.pi * res_grains['area']) / np.round(res_grains[perimeter],2) ** 2
+    h = (a - b) ** 2 / (a + b) ** 2
+    ir_t = (4 * np.pi * (np.pi * a * b)) / (np.pi * (a + b) * (1 + (3 * h) / (10 + np.sqrt(4 - 3 * h))))**2
+    ir_n = ir / ir_t
+
+    if return_IR == True:
+        res_grains['IR'] = np.round(ir)
+
+    if return_IRn == True:
+        res_grains['IRn'] = np.round(ir_n,2)
+       
+    return res_grains
 
 def compile_ax_stats(grains,props=None,fit_res=None,fit_method='convex_hull',padding_size=2, outline_threshold=.5,
         export_results=True, mute = False,
-        properties=['label','area','orientation','minor_axis_length','major_axis_length','centroid','local_centroid','bbox'],file_id=None):
+        properties=['label','area', 'area_convex','perimeter_crofton','orientation','minor_axis_length','major_axis_length','solidity','eccentricity','centroid','local_centroid','bbox'],file_id=None):
     """
     Compiles grain statistics from a list of grains.
 
@@ -238,7 +287,7 @@ def compile_ax_stats(grains,props=None,fit_res=None,fit_method='convex_hull',pad
     outline_threshold (float (optional, default =.5)) - Angular tolerance threshold for b-axis detection during outline fitting in °.
     export_results (bool (optional, default =True)) - export the results to a pandas dataframe
     mute (bool (optional, default =False)) - mute the output
-    properties (list (optional, default =['label','area','orientation','minor_axis_length','major_axis_length','centroid','local_centroid'])) - list of properties to be extracted from the masks
+    properties (list (optional, default =['label','area', 'area_convex','perimeter_crofton','orientation','minor_axis_length','major_axis_length','solidity','eccentricity','centroid','local_centroid','bbox'])) - list of properties to be extracted from the masks
 
     Returns
     -------
@@ -276,10 +325,7 @@ def compile_ax_stats(grains,props=None,fit_res=None,fit_method='convex_hull',pad
     
     return props,props_df
 
-def ell_stats(masks,export_results=True,properties=[
-        'label','area','orientation','minor_axis_length',
-        'major_axis_length','centroid','local_centroid'
-        ]):
+def ell_stats(masks,export_results=True,properties=['label','area', 'area_convex','perimeter_crofton','orientation','minor_axis_length','major_axis_length','solidity','eccentricity','centroid','local_centroid','bbox']):
     """
     Compiles grain statistics from a list of masks.	
 
@@ -287,7 +333,7 @@ def ell_stats(masks,export_results=True,properties=[
     ----------
     masks (list) - list of masks
     export_results (bool (optional, default =True)) - export the results to a pandas dataframe
-    properties (list (optional, default =['label','area','orientation','minor_axis_length','major_axis_length','centroid','local_centroid'])) - list of properties to be extracted from the masks
+    properties (list (optional, default =['label','area', 'area_convex','perimeter_crofton','orientation','minor_axis_length','major_axis_length','solidity','eccentricity','centroid','local_centroid','bbox'])) - list of properties to be extracted from the masks
 
     Returns
     -------
@@ -332,7 +378,6 @@ def fit_grain_axes(props,method='convex_hull',padding=True,padding_size=2,outlin
     """
     a_list,a_coords,b_list, b_coords = [],[],[],[]
     counter_l = 0
-    ##TODO: loop to parallize for each grain; will need refactoring
     for _idx,props in enumerate(props):
         if method == 'convex_hull':
             mask = props.convex_image
@@ -1125,7 +1170,7 @@ def summary_statistics(files,id_list,res_list=None,res_dict=None,sep=',',unit='m
 
     return summary_df
 
-def filter_by_threshold_size(masks,properties=['equivalent_diameter_area','feret_diameter_max','eccentricity','label','area','minor_axis_length','major_axis_length','centroid','local_centroid'],
+def filter_by_threshold_size(masks,properties=['equivalent_diameter_area','feret_diameter_max','eccentricity','solidity','label','area', 'area_convex','perimeter_crofton','minor_axis_length','major_axis_length','centroid','local_centroid'],
                     filters=None,mute=True,threshold=150,remove='small',metric='equivalent_diameter_area'):
     
     _,num = label(masks,return_num=True)
