@@ -320,9 +320,9 @@ def load_eval_res(name, file_path=''):
 
     return eval_results
 
-def load_grain_set(file_dir, gsd_format='csv', gsd_str='grains'):
+def load_grain_set(file_dir, gsd_format='csv', gsd_str='grains', return_dataframe = False):
     """
-    Loads a grain size distributions from a directory.
+    Loads a list of grain size distributions from a directory.
 
     Parameters
     ----------
@@ -376,6 +376,12 @@ def load_grain_set(file_dir, gsd_format='csv', gsd_str='grains'):
 
         for path in active_file_dir:
             gsds += gsds_from_folder(path,gsd_format=gsd_format,gsd_str=gsd_str)
+    
+    if return_dataframe == True:
+        gsds_dfs = []
+        [gsds_dfs.append(pd.read_csv(gsd)) for gsd in gsds];
+        
+        return gsds, gsds_dfs
 
     return gsds
 

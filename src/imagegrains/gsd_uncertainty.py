@@ -545,7 +545,7 @@ MC_method='truncnorm',MC_cutoff=0,avg_res=None,mute=False,save_results=True,tar_
 def gsd_uncertainty(gsd=None,gsd_id='',inp_path='',sep=',',column_name='',conv_factor=1,method='bootstrapping',scale_err=0.1,length_err=1,sfm_error=None,num_it=1000,CI_bounds=[2.5,97.5],
 MC_method='truncnorm',MC_cutoff=0,avg_res=1,mute=False,save_results=False,tar_dir='',return_results=True,sfm_type='',id_string=''):
     """
-    Calculate uncertainty of a GSD. Wrapper for calculate.gsd_uncertainty.
+    Calculate uncertainty of a GSD. Wrapper for uncertainty().
 
     Parameters
     ----------

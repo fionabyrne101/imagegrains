@@ -15,7 +15,7 @@ from glob import glob
 
 from imagegrains import data_loader
 
-def batch_grainsize(data_dir,mask_format='tif',mask_str='',tar_dir='',filters=None,mute=False,outline_threshold=.5,calculate_IRn=False,
+def batch_grainsize(data_dir,mask_format='tif',mask_str='',tar_dir='',filters=None,mute=False,outline_threshold=.5,calculate_IRs=False,
 properties=['label','area', 'area_convex','perimeter_crofton','orientation','minor_axis_length','major_axis_length','centroid','solidity','eccentricity','local_centroid','bbox'],fit_method='',
 return_results=False,save_results=True,do_subfolders=False,resampled=False):
     """ Measures grainsizes in a dataset; can contain subfolders `train`,`test`. If do_subfolders is True, the function will also measure grainsizes in any subfolders of data_dir. 
@@ -54,7 +54,7 @@ return_results=False,save_results=True,do_subfolders=False,resampled=False):
 
         if len(check_l)>0:
             res_grains_i,res_props_i,ids_i= grains_in_dataset(data_dir=working_directory,mask_format=mask_format,mask_str=mask_str,
-            tar_dir=tar_dir,filters=filters,mute=mute,outline_threshold=outline_threshold,properties=properties,fit_method=fit_method,calculate_IRn=calculate_IRn,
+            tar_dir=tar_dir,filters=filters,mute=mute,outline_threshold=outline_threshold,properties=properties,fit_method=fit_method,calculate_IRs=calculate_IRs,
             return_results=return_results,save_results=save_results,resampled=resampled)
 
             if return_results==True:
@@ -68,7 +68,7 @@ return_results=False,save_results=True,do_subfolders=False,resampled=False):
 
     return res_grains_l,res_props_l,ids_l
 
-def grains_in_dataset(inp_list=None,data_dir=None,mask_format='tif',mask_str='',tar_dir='',filters=None,mute=False,outline_threshold=.5, calculate_IRn = False,
+def grains_in_dataset(inp_list=None,data_dir=None,mask_format='tif',mask_str='',tar_dir='',filters=None,mute=False,outline_threshold=.5, calculate_IRs = False,
 properties=['label','area', 'area_convex','perimeter_crofton','orientation','minor_axis_length','major_axis_length','solidity','eccentricity','centroid','local_centroid'],fit_method='',
 return_results=False,save_results=True,image_res=None,set_id=None,resampled=False):
     """
@@ -126,7 +126,7 @@ return_results=False,save_results=True,image_res=None,set_id=None,resampled=Fals
                 image_res_i=image_res[idx]
             else:
                 image_res_i = []
-            props_df,props = grains_from_masks(masks,filters=filters,outline_threshold=outline_threshold,mute=mute,properties=properties,file_id=file_id,image_res=image_res_i,fit_method=fit_method,calculate_IRn=calculate_IRn)
+            props_df,props = grains_from_masks(masks,filters=filters,outline_threshold=outline_threshold,mute=mute,properties=properties,file_id=file_id,image_res=image_res_i,fit_method=fit_method,calculate_IRs=calculate_IRs)
             
             if save_results == True:
                 if tar_dir:
@@ -146,7 +146,7 @@ return_results=False,save_results=True,image_res=None,set_id=None,resampled=Fals
 
     return res_grains,res_props,ids 
 
-def grains_from_masks(masks,filters=None,mute=False,outline_threshold=.5,fit_method='',image_res=None,file_id='', calculate_IRn = False, 
+def grains_from_masks(masks,filters=None,mute=False,outline_threshold=.5,fit_method='',image_res=None,file_id='', calculate_IRs = False, 
 properties=['label','area', 'area_convex','perimeter_crofton','orientation','minor_axis_length','major_axis_length','centroid','local_centroid','solidity','eccentricity']):
     """
     Measures grainsizes in single image dataset.
@@ -221,8 +221,11 @@ properties=['label','area', 'area_convex','perimeter_crofton','orientation','min
     except:
         print('Modified DataFrame structure - check results.')
 
-    if calculate_IRn == True:
-        props_df = isoperimetric_ratios(props_df, perimeter=None, return_IR = False)
+    if calculate_IRs == True:
+        props_df = isoperimetric_ratios(props_df, return_IR = True, return_IRn = True)
+
+    if 'orientation' in properties:
+        props_df['b axis azimuth (deg)'] = orientation_to_azimuth(props_df['orientation'])
 
     return props_df,props
 
@@ -255,8 +258,8 @@ def isoperimetric_ratios(res_grains, perimeter='perimeter_crofton', return_IR = 
     else:
         print('>> No perimeter in properties.')
         return
-    a=np.round(res_grains['ell: a-axis (px)'],1)
-    b=np.round(res_grains['ell: b-axis (px)'],1)
+    a=np.round(res_grains['ell: a-axis (px)'],2)
+    b=np.round(res_grains['ell: b-axis (px)'],2)
 
     ir = (4 * np.pi * res_grains['area']) / np.round(res_grains[perimeter],2) ** 2
     h = (a - b) ** 2 / (a + b) ** 2
@@ -264,7 +267,7 @@ def isoperimetric_ratios(res_grains, perimeter='perimeter_crofton', return_IR = 
     ir_n = ir / ir_t
 
     if return_IR == True:
-        res_grains['IR'] = np.round(ir)
+        res_grains['IR'] = np.round(ir,2)
 
     if return_IRn == True:
         res_grains['IRn'] = np.round(ir_n,2)
@@ -448,6 +451,16 @@ def get_a_axis(outline):
     a_points =[outline[0][max_keys[0][0]],outline[0][max_keys[0][1]]]
 
     return a_ax,a_points
+
+def orientation_to_azimuth(orientations):
+    """
+    Converts orientations skimage.measure.regionprops to azimuth (or bearing) values, where the image y-axis equals north
+    """
+    orientations = np.asarray(orientations)
+    angle_deg = np.degrees(orientations)
+    azimuths = (90 - angle_deg) % 360
+    
+    return azimuths
 
 def iterate_b(outline,a_norm,outline_threshold=0.05):
     """
@@ -1044,7 +1057,7 @@ def gsd_for_set(gsds,column='ell: b-axis (mm)'):
     return gsd_l,id_l
 
 # Statistics
-def get_key_percs(gsd,perc=[15,50,84,96]):
+def get_key_percs(gsd,perc=[16,50,84,96]):
 
     return np.round([gsd[perc[i]]for i in range(len(perc))],decimals=1) 
 
@@ -1105,7 +1118,7 @@ def compare_gsds_to_gts(gsds,lbls,units='px',CI=0.05,mute=False,return_std=False
     else:
         return dds,ps
 
-def get_key_CIs(gsd_res,perc=[15,50,84,96]):
+def get_key_CIs(gsd_res,perc=[16,50,84,96]):
 
     if not any(gsd_res[0]):
         ci_dists = np.zeros(4)

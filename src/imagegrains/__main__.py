@@ -308,13 +308,9 @@ def resampling_step(args,filters,mute=False,tar_dir=''):
                 grid_resampled,_,_ = grainsizing.resample_masks(mask,filters=filters,mute=True,method=method,snapping=resample_snapping)
             #save resampled mask to file
             if not tar_dir:
-                #resampled_dir = args.img_dir+'/Resampled_grains/'
                 resampled_dir = Path(img_dir)/'predictions/Resampled_grains/'
-                #io.imsave(resampled_dir + mask_id +f'_{method}_resampled.tif',grid_resampled)
             else:
-                #resampled_dir = tar_dir +'/Resampled_grains/'
                 resampled_dir = Path(tar_dir)/'Resampled_grains/' 
-                #io.imsave(resampled_dir + mask_id+f'_{method}_resampled.tif',grid_resampled)
             os.makedirs(resampled_dir, exist_ok=True)
             filepath = resampled_dir / f'{mask_id}_{method}_resampled.tif'
             io.imsave(str(filepath),grid_resampled)
@@ -400,13 +396,11 @@ def gsd_step(file_path,args,mute=False,tar_dir='',resampled=False):
 
     #assert output directory 
     if tar_dir != '':
-        #out_dir = tar_dir+'/GSD_uncertainty/'
         out_dir = Path(tar_dir)/'GSD_uncertainty/'
     else:
         if resampled == True:
             out_dir = Path(file_path)/'GSD_uncertainty/'
         else:
-            #out_dir = file_path + '/GSD_uncertainty/'
             out_dir = Path(file_path)/'predictions/GSD_uncertainty/'
     os.makedirs(out_dir,exist_ok=True)
 
@@ -451,7 +445,6 @@ def gsd_step(file_path,args,mute=False,tar_dir='',resampled=False):
                     out_dir2 = Path(file_path)/'predictions/'
             out_path = out_dir2/f'{axis}_{unit}_{approx}_{method}.csv'
             sum_df.to_csv(out_path,index=False)
-            #sum_df.to_csv(f'{out_dir2}/{axis}_{unit}_{approx}_{method}.csv',index=False)
     except KeyboardInterrupt:
         print('Uncertainty estimation interrupted. Saving results so far.')
         pass
@@ -463,7 +456,6 @@ def gsd_step(file_path,args,mute=False,tar_dir='',resampled=False):
             dfi = dfi.round(decimals=2)
             out_path = Path(out_dir)/f'{idi}_{method}_full_uncertainty.csv'
             dfi.to_csv(out_path)
-        #dfi.to_csv(f'{out_dir}/{idi}_{method}_full_uncertainty.csv')
     print(f'>> ImageGrains successfully created results for {len(df_list)} GSDs.')
     return 
 
