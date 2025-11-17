@@ -1088,7 +1088,7 @@ def get_avg_perc_std(gsd1,gsd2,metric='mean'):
     elif metric == 'median':
         return np.median(np.std((np.array(gsd1)-np.array(gsd2))))
    
-def compare_gsds_to_gts(gsds,lbls,units='px',CI=0.05,mute=False,return_std=False):
+def compare_gsds_to_gts(gsds,lbls,units='px',CI=0.05,mute=False,return_std=False,metric='mean'):
 
     counter = 0
     dds,ps,stds = [],[],[]
@@ -1098,7 +1098,7 @@ def compare_gsds_to_gts(gsds,lbls,units='px',CI=0.05,mute=False,return_std=False
         return
     
     for lbl,gsd in zip(lbls,gsds):
-        dd = get_avg_perc_delta(lbl,gsd,metric='mean')
+        dd = get_avg_perc_delta(lbl,gsd,metric=metric)
         dds.append(dd)
         a,p = gsd_test_statistics(lbl,gsd,method='ks2samp')
         ps.append(p)

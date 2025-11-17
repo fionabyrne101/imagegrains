@@ -676,7 +676,6 @@ MC_method='truncnorm',MC_cutoff=0,avg_res=1,mute=False,sfm_type=''):
     if med_list is not None:
         if len(med_list) <1:
             med_list = np.zeros(100)
-            med_list = np.zeros(100)
             upper_CI = np.zeros(100)
             lower_CI = np.zeros(100)
 
