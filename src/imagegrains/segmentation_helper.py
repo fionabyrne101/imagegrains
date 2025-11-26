@@ -678,14 +678,14 @@ def eval_set(imgs, lbls, preds, data_id='', tar_dir='',
                 
             if np.unique(label(y_pred)).any() > 0: #check if prediction is not empty
                 _, y_pred = grainsizing.filter_grains(labels=y_pred,properties=filter_props,filters=filters,mask=y_pred)
-                ap,_,_,_,iout,_ =  eval_image(y_true,y_pred, thresholds=thresholds)
+                ap,tp,fp,fn,iout,_ =  eval_image(y_true,y_pred, thresholds=thresholds)
             else:
                 if mute == False:
                     print('! Empty prediction for image: ',preds[idx],' !')
                 iout = []
                 ap = np.zeros(len(thresholds))
 
-        eval_results[idx] = {'id':img_id,'img':img, 'ap':ap, 'iout':iout,}
+        eval_results[idx] = {'id':img_id,'img':img, 'ap':ap, 'iout':iout,'tp':tp,'fp':fp,'fn':fn}
 
     if save_results==True:
         if tar_dir != '':
@@ -777,7 +777,7 @@ def find_test_idxs(lbls):
 
     return test_idxs
 
-def map_res_to_imgs(res_dict, imgs):
+def map_res_to_imgs(eval_results, imgs):
     """
     Match results to images based on the file name.
     """
@@ -786,20 +786,20 @@ def map_res_to_imgs(res_dict, imgs):
 
     for kk in range(len(imgs)):
         img_id = Path(imgs[kk]).stem
-        for k in range(len(res_dict)):
-            if img_id == res_dict[k]['id']:
-                new_res[kk] = res_dict[k]
+        for k in range(len(eval_results)):
+            if img_id == eval_results[k]['id']:
+                new_res[kk] = eval_results[k]
 
     return new_res
 
-def get_stats_for_res(preds, res_dict, test_idxs=None):
+def get_stats_for_res(preds, eval_results, test_idxs=None,return_prec_recall=False):
     """
     Get average precision stats.
 
     Parameters:
     ------------
     preds (list) - List of predictions paths
-    res_dict (dict) - Dictionary of evaluation results
+    eval_results (dict) - Dictionary of evaluation results
     test_idxs (list (optional, default=None)) - Indices of images in test split
 
     Returns
@@ -807,32 +807,52 @@ def get_stats_for_res(preds, res_dict, test_idxs=None):
     res_stats (list) - List of average precision stats
     """
 
-    tpreds, taps50, tamaps = [],[],[]
-    ttpreds, ttaps50, ttamaps = [],[],[]
+    tpreds, taps50, tamaps, t_tp, t_fp, t_fn = [],[],[],[],[],[]
+    ttpreds, ttaps50, ttamaps,tt_tp, tt_fp, tt_fn = [],[],[],[],[],[]
+
 
     for i in range(len(preds)):
-        a = regionprops_table((label(io.imread(str(preds[i])))))
+        a = regionprops_table((io.imread(str(preds[i]))))
         napred = len(a['label'])
-        aap50 = res_dict[i]['ap'][0]
-        amap = res_dict[i]['ap'][0:9].mean()
+        aap50 = eval_results[i]['ap'][0]
+        amap = eval_results[i]['ap'][0:9].mean()
+        tpap50 = eval_results[i]['tp'][0]
+        fpap50 = eval_results[i]['fp'][0]
+        fnap50 = eval_results[i]['fn'][0]
         
         if test_idxs:
+
             if i < len(test_idxs):
                 tpreds.append(napred)
                 taps50.append(aap50)
                 tamaps.append(amap)
+                t_tp.append(tpap50)
+                t_fp.append(fpap50)
+                t_fn.append(fnap50)
             else:
                 ttpreds.append(napred)
                 ttaps50.append(aap50)
                 ttamaps.append(amap)
+                tt_tp.append(tpap50)
+                tt_fp.append(fpap50)
+                tt_fn.append(fnap50)
         else:
             ttpreds.append(napred)
             ttaps50.append(aap50)
             ttamaps.append(amap)
+            tt_tp.append(tpap50)
+            tt_fp.append(fpap50)
+            tt_fn.append(fnap50)
+
     res_stats = [np.sum(tpreds),np.mean(taps50),np.std(taps50),np.mean(tamaps),np.std(tamaps),
                   np.sum(ttpreds),np.mean(ttaps50),np.std(ttaps50),np.mean(ttamaps),np.std(ttamaps)]
-    
-    return res_stats
+
+    if return_prec_recall == True:
+        res_stats2 =[np.sum(t_tp)/(np.sum(t_tp)+np.sum(t_fp)), np.sum(t_tp)/(np.sum(t_tp)+np.sum(t_fn))]
+        return (res_stats, res_stats2)
+    else:
+        return res_stats
+
 
 def get_stats_for_run(pred_list, res_list, titles,
                       p_string_list, labels, test_idxs_list=None):
