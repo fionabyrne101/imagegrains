@@ -683,6 +683,9 @@ def eval_set(imgs, lbls, preds, data_id='', tar_dir='',
                 if mute == False:
                     print('! Empty prediction for image: ',preds[idx],' !')
                 iout = []
+                tp = np.zeros(len(thresholds))
+                fp = np.zeros(len(thresholds))
+                fn = np.zeros(len(thresholds))
                 ap = np.zeros(len(thresholds))
 
         eval_results[idx] = {'id':img_id,'img':img, 'ap':ap, 'iout':iout,'tp':tp,'fp':fp,'fn':fn}
