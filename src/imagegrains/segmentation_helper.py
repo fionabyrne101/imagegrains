@@ -815,7 +815,7 @@ def get_stats_for_res(preds, eval_results, test_idxs=None,return_prec_recall=Fal
 
 
     for i in range(len(preds)):
-        a = regionprops_table((io.imread(str(preds[i]))))
+        a = regionprops_table(label((io.imread(str(preds[i])))))
         napred = len(a['label'])
         aap50 = eval_results[i]['ap'][0]
         amap = eval_results[i]['ap'][0:9].mean()
