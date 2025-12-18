@@ -170,7 +170,7 @@ def AP_IoU_summary_plot(eval_results_list,elements,test_idx_list =None ,labels=T
 
     return
     
-def inspect_predictions(imgs,preds,lbls=None,title='',tar_dir='',save_fig=False):
+def inspect_predictions(imgs,preds,lbls=None,title='',tar_dir='',save_fig=False,alpha=0.5,bg_color='black'):
     """
     Plot images and predictions side by side.  
     `imgs` list of image paths  
@@ -201,7 +201,8 @@ def inspect_predictions(imgs,preds,lbls=None,title='',tar_dir='',save_fig=False)
         plt.subplot(rows,len(imgs),len(imgs) + k+1)
         pred = io.imread(str(preds[k]))
         colors = mask_cmap(pred)
-        plt.imshow(label2rgb(pred, image=img, colors=colors, bg_label=0))
+        msks=label2rgb(pred, image=img, colors=colors, bg_label=0,alpha=alpha,bg_color=bg_color)
+        plt.imshow(mark_boundaries(msks, label(pred), color=(0,0,1), mode='thick'))
         if k == 0:
             plt.ylabel('Predictions')
         plt.xticks([],[])
@@ -211,7 +212,8 @@ def inspect_predictions(imgs,preds,lbls=None,title='',tar_dir='',save_fig=False)
             plt.subplot(rows,len(imgs),(len(imgs)*2)+ k+1)
             lbl = io.imread(str(lbls[k]))
             colors = mask_cmap(lbl)
-            plt.imshow(label2rgb(lbl, image=img, colors=colors, bg_label=0))
+            msks2 = label2rgb(lbl, image=img, colors=colors, bg_label=0,bg_color='white',alpha=alpha)
+            plt.imshow(mark_boundaries(msks2, label(lbl), color=(0,0,1), mode='thick'))
             if k == 0:
                 plt.ylabel('Ground truth')
             plt.xticks([],[])
@@ -232,7 +234,7 @@ def inspect_predictions(imgs,preds,lbls=None,title='',tar_dir='',save_fig=False)
 
     return fig
 
-def inspect_dataset_grains(imgs,masks,res_props=None,elements=['image','mask','ellipse_b','ellipse_a','ellipse']):
+def inspect_dataset_grains(imgs,masks,res_props=None,elements=['image','ellipse_b','ellipse_a','ellipse']):
 
     fig = plt.subplots(figsize=(18,len(masks)*1.3))
 
@@ -254,7 +256,7 @@ def inspect_dataset_grains(imgs,masks,res_props=None,elements=['image','mask','e
 
     return fig
 
-def mask_cmap(masks,cmap='winter'):
+def mask_cmap(masks,cmap='BrBG'):
 
     values = np.unique(masks)
     colors = plt.cm.get_cmap(cmap,len(values))
@@ -263,7 +265,7 @@ def mask_cmap(masks,cmap='winter'):
 
     return colors
 
-def show_masks_set(masks,images,show_ap50=False,showmap=False,res_dict=None,show_id=False,title_str=''):
+def show_masks_set(masks,images,show_ap50=False,showmap=False,res_dict=None,show_id=False,title_str='',alpha=0.5,bg_color='white'):
 
     plt.figure(figsize=(20,2.222*(len(images)/9)))
 
@@ -280,8 +282,8 @@ def show_masks_set(masks,images,show_ap50=False,showmap=False,res_dict=None,show
         rows = 1 if rows == 0 else rows
         plt.subplot(rows,9,k+1)
         
-        msks = label2rgb(label(lbl), image=img, bg_label=0,colors=colors)
-        plt.imshow(mark_boundaries(msks, label(lbl), color=(1,0,0), mode='thick'))
+        msks = label2rgb(label(lbl), image=img, bg_label=0,colors=colors,bg_color=bg_color,alpha=alpha)
+        plt.imshow(mark_boundaries(msks, label(lbl), color=(0,0,1), mode='thick'))
         plt.axis('off')
 
         if res_dict != None:
@@ -307,7 +309,7 @@ def show_masks_set(masks,images,show_ap50=False,showmap=False,res_dict=None,show
     return
 
 def plot_single_img_pred(image,mask,file_id=None, show_n=False, save=False, tar_dir='', show=False,
-                         bd_color=(1,0,0), cmap='winter',alpha=0.3):
+                         bd_color=(0,0,1), cmap='BrBG',alpha=0.5,bg_color='black'):
 
     if file_id == None:
         file_id = Path(image).stem
@@ -327,7 +329,7 @@ def plot_single_img_pred(image,mask,file_id=None, show_n=False, save=False, tar_
 
     with plt.ioff():
         colors = mask_cmap(lbl,cmap=cmap)
-        masks = label2rgb(label(lbl), image=img, bg_label=0,colors=colors, alpha=alpha)
+        masks = label2rgb(label(lbl), image=img, bg_label=0,colors=colors, alpha=alpha,bg_color=bg_color)
         plt.imshow(mark_boundaries(masks, label(lbl), color=bd_color, mode='thick'))
         plt.axis('off')
         if show_n == True and file_id:
@@ -362,7 +364,7 @@ def all_grains_plot(masks,elements,props=None, image =None,
         plt.ylim(0-int(h/plot_padding),h+int(h/plot_padding))
 
     if 'masks_individual' in elements:
-        plt.imshow(label2rgb(label(masks), bg_label=0),alpha=0.3)
+        plt.imshow(label2rgb(label(masks), bg_label=0),alpha=0.5)
 
     if not props:
         print('No regionprops found: Finding grains...')
@@ -389,7 +391,7 @@ def all_grains_plot(masks,elements,props=None, image =None,
             img_pad = grainsizing.image_padding(props[_idx].image,padding_size=padding_size)
             contours = grainsizing.contour_grain(img_pad)
             for contour in contours:
-                plt.plot(contour[:, 1]-(padding_size-.5)+minx, contour[:, 0]-(padding_size-.5)+miny,'-c',linewidth=1.5)
+                plt.plot(contour[:, 1]-(padding_size-.5)+minx, contour[:, 0]-(padding_size-.5)+miny,'-b',linewidth=1)
 
         if 'convex_hull' in elements:
             convex_image = props[_idx].convex_image
@@ -409,15 +411,15 @@ def all_grains_plot(masks,elements,props=None, image =None,
             else:
                 x1 = [b_coords[_idx][0][1]-(padding_size-.5)+minx,b_coords[_idx][1][1]-(padding_size-.5)+minx]
                 y1 = [b_coords[_idx][0][0]-(padding_size-.5)+miny,b_coords[_idx][1][0]-(padding_size-.5)+miny]
-            plt.plot(x1,y1,'b',label='b_axis[convex hull]')
+            plt.plot(x1,y1,'m',label='b_axis[convex hull]')
 
         if 'ellipse' in elements:    
             x0,x1,x2,x3,x4,y0,y1,y2,y3,y4,x,y= ell_from_props(props,_idx)
-            plt.plot(x, y, 'r--', linewidth=1.5)
+            plt.plot(x, y, 'k-', linewidth=1)
 
         if 'ellipse_b' in elements:
             x0,x1,x2,x3,x4,y0,y1,y2,y3,y4,x,y= ell_from_props(props,_idx)
-            plt.plot((x1, x4), (y1, y4), '-b', linewidth=1)
+            plt.plot((x1, x4), (y1, y4), '-m', linewidth=1)
 
         if 'ellipse_a' in elements:
             x0,x1,x2,x3,x4,y0,y1,y2,y3,y4,x,y= ell_from_props(props,_idx)
@@ -429,7 +431,7 @@ def all_grains_plot(masks,elements,props=None, image =None,
         if 'bbox' in elements:
             bx = (minx, maxx, maxx, minx, minx)
             by = (miny, miny, maxy, maxy, miny)
-            plt.plot(bx, by, '-r', linewidth=1,label='bbox')
+            plt.plot(bx, by, '-c', linewidth=1,label='bbox')
 
     plt.title(title)
     plt.gca().invert_yaxis()
@@ -438,11 +440,11 @@ def all_grains_plot(masks,elements,props=None, image =None,
 
     return
 
-def plot_single_img_mask(img, mask,file_id=None):
+def plot_single_img_mask(img, mask,file_id=None,alpha=0.5,bg_color='black'):
 
     colors = mask_cmap(mask)
-    masks = label2rgb(label(mask), image=img, bg_label=0,colors=colors)
-    plt.imshow(mark_boundaries(masks, label(mask), color=(1,0,0), mode='thick'))
+    masks = label2rgb(label(mask), image=img, bg_label=0,colors=colors,alpha=alpha,bg_color=bg_color)
+    plt.imshow(mark_boundaries(masks, label(mask), color=(0,0,1), mode='thick'))
     plt.axis('off')
 
     if file_id:
@@ -463,7 +465,7 @@ def single_grain_plot(mask,elements,props=None, image =None, fit_res =None,
         plt.imshow(image,extent=[minx,maxx,maxy,miny])
 
     if 'masks_individual' in elements:
-        plt.imshow(label2rgb(label(mask), bg_label=0),alpha=0.3)
+        plt.imshow(label2rgb(label(mask), bg_label=0),alpha=0.5)
 
     if not fit_res and do_fit == True:
         print('Fitted axes not found: Attempting axes fit for',fit_method,'...')
@@ -482,7 +484,7 @@ def single_grain_plot(mask,elements,props=None, image =None, fit_res =None,
         img_pad = grainsizing.image_padding(props[0].image,padding_size=padding_size)
         contours = grainsizing.contour_grain(img_pad)
         for contour in contours:
-                plt.plot(contour[:, 1]-(padding_size-.5)+minx, contour[:, 0]-(padding_size-.5)+miny,'-c',linewidth=1.5)
+                plt.plot(contour[:, 1]-(padding_size-.5)+minx, contour[:, 0]-(padding_size-.5)+miny,'-b',linewidth=1.5)
 
     if 'convex_hull' in elements:
         convex_image = props[0].convex_image
@@ -503,7 +505,7 @@ def single_grain_plot(mask,elements,props=None, image =None, fit_res =None,
         else:
             x1 = [b_coords[0][0][1]-(padding_size-.5)+minx,b_coords[0][1][1]-(padding_size-.5)+minx]
             y1 = [b_coords[0][0][0]-(padding_size-.5)+miny,b_coords[0][1][0]-(padding_size-.5)+miny]
-        plt.plot(x1,y1,'b',label='b_axis[convex hull]')  
+        plt.plot(x1,y1,'m',label='b_axis[convex hull]')  
 
     if 'ellipse' in elements:    
         x0,x1,x2,x3,x4,y0,y1,y2,y3,y4,x,y= ell_from_props(props)
@@ -511,7 +513,7 @@ def single_grain_plot(mask,elements,props=None, image =None, fit_res =None,
 
     if 'ellipse_b' in elements:
         x0,x1,x2,x3,x4,y0,y1,y2,y3,y4,x,y= ell_from_props(props)
-        plt.plot((x1, x4), (y1, y4), '-b', linewidth=1)
+        plt.plot((x1, x4), (y1, y4), '-m', linewidth=1)
 
     if 'ellipse_a' in elements:
         x0,x1,x2,x3,x4,y0,y1,y2,y3,y4,x,y= ell_from_props(props)
