@@ -15,7 +15,7 @@ from glob import glob
 
 from imagegrains import data_loader
 
-def batch_grainsize(data_dir,mask_format='tif',mask_str='',tar_dir='',filters=None,mute=False,outline_threshold=.5,calculate_IRs=False,
+def batch_grainsize(data_dir,mask_format='tif',mask_str='',tar_dir='',filters=None,mute=False,outline_threshold=.5,calculate_IRs=True,
 properties=['label','area', 'area_convex','perimeter_crofton','orientation','minor_axis_length','major_axis_length','centroid','solidity','eccentricity','local_centroid','bbox'],fit_method='',
 return_results=False,save_results=True,do_subfolders=False,resampled=False):
     """ Measures grainsizes in a dataset; can contain subfolders `train`,`test`. If do_subfolders is True, the function will also measure grainsizes in any subfolders of data_dir. 
@@ -29,11 +29,13 @@ return_results=False,save_results=True,do_subfolders=False,resampled=False):
     filters (dict (optional, default =None)) - dictionary of filters to apply to the grains
     mute (bool (optional, default =False)) - mute the output
     outline_threshold (float (optional, default =.5)) - Angular tolerance threshold for b-axis detection during outline fitting in °.
+    calculate_IRs (bool (optional, default = True)) - whether to calculate isoperimetric ratios
     properties (list (optional, default =['label','area', 'area_convex','perimeter_crofton','orientation','minor_axis_length','major_axis_length','solidity','eccentricity','centroid','local_centroid','bbox'])) - list of properties to be extracted from the masks
     fit_method (str (optional, default ='')) - method to fit the grain outlines. Options are,'convex_hull','mask_outline'. If fit_method is not specified, ellipsoidal fit will be used. ! Please note that using 'convex_hull' or 'mask_outline' will be slow.
     return_results (bool (optional, default =False)) - return the results as a list of pandas dataframes
     save_results (bool (optional, default =True)) - save the results as csv files
     do_subfolders (bool (optional, default =False)) - if True, the function will also measure grainsizes in any subfolders of data_dir
+    resampled (bool (optional, default =False)) - if True, the function assumes that the masks have been resampled already and saves the results to the data_dir instead of data_dir/predictions
 
     Returns     
     -------
@@ -68,7 +70,7 @@ return_results=False,save_results=True,do_subfolders=False,resampled=False):
 
     return res_grains_l,res_props_l,ids_l
 
-def grains_in_dataset(inp_list=None,data_dir=None,mask_format='tif',mask_str='',tar_dir='',filters=None,mute=False,outline_threshold=.5, calculate_IRs = False,
+def grains_in_dataset(inp_list=None,data_dir=None,mask_format='tif',mask_str='',tar_dir='',filters=None,mute=False,outline_threshold=.5, calculate_IRs = True,
 properties=['label','area', 'area_convex','perimeter_crofton','orientation','minor_axis_length','major_axis_length','solidity','eccentricity','centroid','local_centroid'],fit_method='',
 return_results=False,save_results=True,image_res=None,set_id=None,resampled=False):
     """
@@ -83,12 +85,14 @@ return_results=False,save_results=True,image_res=None,set_id=None,resampled=Fals
     filters (dict (optional, default =None)) - dictionary of filters to apply to the grains
     mute (bool (optional, default =False)) - mute the output
     outline_threshold (float (optional, default =.5)) - Angular tolerance threshold for b-axis detection during outline fitting in °.
+    calculate_IRs (bool (optional, default = True)) - whether to calculate isoperimetric ratios
     properties (list (optional, default =['label','area', 'area_convex','perimeter_crofton','orientation','minor_axis_length','major_axis_length','solidity','eccentricity','centroid','local_centroid','bbox'])) - list of properties to be extracted from the masks
     fit_method (str (optional, default ='')) - method to fit the grain outlines. Options are'convex_hull','mask_outline'.
     return_results (bool (optional, default =False)) - return the results as a list of pandas dataframes
     save_results (bool (optional, default =True)) - save the results as csv files
     image_res (list (optional, default =None)) - list of image resolutions in µm/pixel
-
+    set_id (str (optional, default =None)) - ID of the dataset
+    resampled (bool (optional, default =False)) - if True, the function assumes that the masks have been resampled already and saves the results to the data_dir instead of data_dir/predictions
     
     Returns
     -------
@@ -146,7 +150,7 @@ return_results=False,save_results=True,image_res=None,set_id=None,resampled=Fals
 
     return res_grains,res_props,ids 
 
-def grains_from_masks(masks,filters=None,mute=False,outline_threshold=.5,fit_method='',image_res=None,file_id='', calculate_IRs = False, 
+def grains_from_masks(masks,filters=None,mute=False,outline_threshold=.5,fit_method='',image_res=None,file_id='', calculate_IRs = True, 
 properties=['label','area', 'area_convex','perimeter_crofton','orientation','minor_axis_length','major_axis_length','centroid','local_centroid','solidity','eccentricity']):
     """
     Measures grainsizes in single image dataset.
@@ -160,6 +164,7 @@ properties=['label','area', 'area_convex','perimeter_crofton','orientation','min
     fit_method (str (optional, default ='')) - method to fit the grain outlines. Options are'convex_hull','mask_outline'. 
     image_res (list (optional, default =None)) - list of image resolutions in µm/pixel
     file_id (str (optional, default ='')) - ID of the image
+    calculate_IRs (bool (optional, default = True)) - whether to calculate isoperimetric ratios
     properties (list (optional, default =['label','area', 'area_convex','perimeter_crofton','orientation','minor_axis_length','major_axis_length','solidity','eccentricity','centroid','local_centroid','bbox'])) - list of properties to be extracted from the masks
     
     Returns
@@ -500,7 +505,7 @@ def iterate_b(outline,a_norm,outline_threshold=0.05):
 
     return b_ax,b_points
 
-def batch_outline(labels,imgs,tar_dir='',prop_l=None,filters= None,
+def batch_outline(labels,imgs,tar_dir='',prop_l=None,
                          padding=True,padding_size=2,mute=True,file_id='',
                          elements=['binary_mask','image_slice','image_masked','mask_outline']):
     
@@ -511,13 +516,15 @@ def batch_outline(labels,imgs,tar_dir='',prop_l=None,filters= None,
 
         if not prop_l:
            props =None
+        else:
+            props = prop_l[id_x]
 
-        export_grain_outline(lbl,img=img,props=None,tar_dir=tar_dir,filters= filters,
+        export_grain_outline(lbl,img=img,props=props,tar_dir=tar_dir,
                          padding=padding,padding_size=padding_size,mute=mute,file_id=file_id,
                          elements=elements)
     
 
-def export_grain_outline(masks,img=None,props=None,method='mask_outline', tar_dir='',filters= None,
+def export_grain_outline(masks,img=None,props=None,method='mask_outline', tar_dir='',
                          padding=True,padding_size=2,mute=False,file_id='',plot_summary=False,
                          elements=['binary_mask','image_slice','image_masked','mask_outline']):
     
@@ -924,9 +931,9 @@ def scale_grains(df,resolution='', file_id='', gsd_path ='', camera_parameters= 
         if tar_dir != '':
             tar_dir = str(Path(tar_dir).as_posix())
             os.makedirs(Path(tar_dir), exist_ok=True)
-            df.to_csv(f'{tar_dir}/{str(file_id)}_re_scaled.csv',sep=',')
+            df.to_csv(f'{tar_dir}/{str(file_id)}_re_scaled.csv',sep=',',index=False)
         else:
-            df.to_csv(f'{parent_dir}/{str(file_id)}_re_scaled.csv',sep=',')
+            df.to_csv(f'{parent_dir}/{str(file_id)}_re_scaled.csv',sep=',',index=False)
     
     if return_results == False:
         df = []
@@ -978,7 +985,6 @@ def dataset_object_size(gsds,tar_dir='',save_results=True):
     for _,gsd in enumerate(gsds):
         dfi = pd.read_csv(gsd)
         id_l.append(Path(gsd).stem)
-        #id_l.append(gsd.split('\\')[len(gsd.split('\\'))-1].split('.')[0])
         min_l.append(np.min(dfi['ell: b-axis (px)']))
         max_l.append(np.max(dfi['ell: b-axis (px)']))
         med_l.append(np.median(dfi['ell: b-axis (px)']))
@@ -989,7 +995,7 @@ def dataset_object_size(gsds,tar_dir='',save_results=True):
     if save_results ==True:
         if tar_dir:
             os.makedirs(Path(tar_dir), exist_ok=True)
-        res_df.to_csv(f'{Path(tar_dir)}/dataset_object_size.csv',sep=',')
+        res_df.to_csv(f'{Path(tar_dir)}/dataset_object_size.csv',sep=',',index=False)
 
     return res_df
 

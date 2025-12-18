@@ -123,7 +123,6 @@ def main():
 
     if args.switch_filters_off:
         filters= {'edge':[False,edge_val],'px_cutoff':[False,size_val]}
-    print(filters)
     if mute == False:
         print(f'Filter configuratiuon: {filters}')
 
@@ -330,11 +329,11 @@ def resampling_step(args,filters,mute=False,tar_dir=''):
 
 def grain_size_step(img_dir,filters,fit_method=None,mute=False,tar_dir='',mask_str='',resampled=False):
     if not fit_method:
-        _,_,_ = grainsizing.batch_grainsize(img_dir,filters=filters,mute=True,tar_dir=tar_dir,mask_str=mask_str,resampled=resampled)
+        _,_,_ = grainsizing.batch_grainsize(img_dir,filters=filters,mute=True,tar_dir=tar_dir,mask_str=mask_str,resampled=resampled,calculate_IRs=True)
     else:
         if mute== False:
             print('>> Adding additional approximation for grains: ',fit_method)
-        _,_,_ = grainsizing.batch_grainsize(img_dir,filters=filters,fit_method=fit_method,mute=True,tar_dir=tar_dir,mask_str=mask_str,resampled=resampled)
+        _,_,_ = grainsizing.batch_grainsize(img_dir,filters=filters,fit_method=fit_method,mute=True,tar_dir=tar_dir,mask_str=mask_str,resampled=resampled,calculate_IRs=True)
     return
 
 def scaling_step(img_dir,resolution,mute=False,gsd_str='_grains',tar_dir=''):
@@ -467,7 +466,7 @@ def gsd_step(file_path,args,mute=False,tar_dir='',resampled=False):
             idi = idi.replace('grains','')
             dfi = dfi.round(decimals=2)
             out_path = Path(out_dir)/f'{idi}_{method}_full_uncertainty.csv'
-            dfi.to_csv(out_path)
+            dfi.to_csv(out_path,index=False)
     print(f'>> ImageGrains successfully created results for {len(df_list)} GSDs.')
     return 
 
