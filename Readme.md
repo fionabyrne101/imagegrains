@@ -11,30 +11,29 @@ A software library for segmenting and measuring of sedimentary particles in imag
 
 <img src="https://github.com/dmair1989/ImageGrains/blob/main/illustrations/example.png?raw=true" align="center">
   
-## :sparkles: Version 2.0 (in development) :sparkles:
+## :sparkles: New Release: Version 2.0 :sparkles:
 
-Currently, we prepare a major update, which includes:
+The major update to `2.0` includes:
 
-* Switching to [*Cellpose-SAM*](https://doi.org/10.1101/2025.04.28.651001) (```4.0.1+```) as default segmentation model, which improves the segmentation accuracy and generalization ***a lot***.
-* [New models](https://doi.org/10.5281/zenodo.15309323) trained on a larger dataset (IG2) that includes different types of grains and imagery.
+* Switching to [*Cellpose-SAM*](https://doi.org/10.1101/2025.04.28.651001) (```4.0.1+```) as default segmentation model, which improves the segmentation accuracy and generalization ***a lot***. For more details, see the paper.
+* [New models](https://doi.org/10.5281/zenodo.15309323) trained on a [larger dataset (IG2)](https://doi.org/10.5281/zenodo.17866827) that includes different types of grains and imagery.
 * Including 3D segmentation of CT-scan stacks; see [Notebook](https://github.com/dmair1989/imagegrains/blob/main/notebooks/CT_3D_segmentation.ipynb) and [Schuster et al. (2025)](https://doi.org/10.1111/bor.70023).  
 * A [graphical user interface (GUI)](#how-does-it-work).  
   
-These features are already available as pre-release, i.e., when [installed](#local-installation) with:
-  
-```text
-pip install git+https://github.com/dmair1989/imagegrains.git
-```
+Try ImageGrains `2.0` with Cellpose-SAM in Colab with your own data in google drive:  
+[Complete grain size and shape analysis.ipynb](https://github.com/dmair1989/imagegrains/blob/86bce6379bb965fa255a7de269ca8baa6ccad3a8/notebooks/complete_imagegrains_analysis_colab.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/dmair1989/imagegrains/blob/main/notebooks/complete_imagegrains_analysis_colab.ipynb)  
 
 ## Citation  
 
-If you use software and/or data from here in your research, please cite the following works:
+If you use ImageGrains, please cite:
 
-- Mair, D., Witz, G., Do Prado, A.H., Garefalakis, P. & Schlunegger, F. (2023) Automated detecting, segmenting and measuring of grains in images of fluvial sediments: The potential for large and precise data from specialist deep learning models and transfer learning. Earth Surface Processes and Landforms, 1–18. <https://doi.org/10.1002/esp.5755>.
+- Mair, D., Witz, G., Do Prado, A., Garefalakis, P., Wild, A., Ville, F., Schuster, B., Horn, M., Österler, J., Fabbri, S. C., Litty, C., Achleitner, S., Leistner, S., Hiller, C., and Schlunegger, F.: ImageGrains 2.0: Improved precision and generalization for grain segmentation. *preprint details will be available soon*
 
 - Pachitariu, M., Rariden, M., Stringer, C.. Cellpose-SAM: superhuman generalization for cellular segmentation. bioRxiv 2025.04.28.651001; <https://doi.org/10.1101/2025.04.28.651001>
 
-If you use legacy versions of Cellpose (e.g., by using Imagegrains `v1.x` models), please cite the Cellpose 1.0 paper:  
+If you use legacy versions with Cellpose 2 (e.g., by using ImageGrains `1.x` or `IG1` models), please cite the Cellpose 1.0 paper:  
+
+- Mair, D., Witz, G., Do Prado, A.H., Garefalakis, P. & Schlunegger, F. (2023) Automated detecting, segmenting and measuring of grains in images of fluvial sediments: The potential for large and precise data from specialist deep learning models and transfer learning. Earth Surface Processes and Landforms, 1–18. <https://doi.org/10.1002/esp.5755>.
 
 - Stringer, C.A., Pachitariu, M., (2021). Cellpose: a generalist algorithm for cellular segmentation. Nat Methods 18, 100–106. <https://doi.org/10.1038/s41592-020-01018-x>.
 
@@ -63,24 +62,31 @@ Then install the package using
 ```text
 pip install imagegrains
 ```  
+:exclamation: Please notet that this will install *Cellpose* `4.0.1` or newer. The new *Cellpose-SAM* architecture ***is not*** compatible with older models! To use older models, install the last version of ImageGrains `1.x` with:
+```text
+pip install imagegrains==1.2.1
+```
 
 ### GPU support  
 
 By default, *Cellpose* will run on the CPU. From version `4.0.1` on,  it uses a transformer (*Cellpose-SAM*) as backbone segmentation model, which is much larger than the previous model. **Using a GPU on local machines is strongly recommended**.  
-To use a GPU version on Windows or Linux, you will have to make sure you have a GPU compatible PyTorch version. For this:
+
+**Mac**: Cellpose (version `4.0.1` and later) supports  [Apple GPUs (M1 and newer) out-of-the-box](https://cellpose.readthedocs.io/en/latest/installation.html#m1-m3-mac-installation).  
+
+**Windows** or **Linux**: To use a GPU, you will have to make sure you have a GPU compatible PyTorch version. For this:
 
 1. Uninstall the PyTorch version that gets installed by default with Cellpose:
 
         pip uninstall torch
 
-2. Make sure your have up-to-date drivers for your NVIDIA card installed.
+2. Make sure your have up-to-date drivers for your GPU installed.
 
 3. Re-install a GPU version of PyTorch via conda using a command that you can find [here](https://pytorch.org/get-started/locally/) (this takes care of the cuda toolkit, cudnn etc. so **no need to install manually anything more than the driver**). The command will look like this:
 
         pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cu118  
 
-If you work on a Mac, Cellpose (version `4.0.1` and later) supports   [M1-M3 out-of-the-box](https://cellpose.readthedocs.io/en/latest/installation.html#m1-m3-mac-installation).
-Details and more installation options of Cellpose (including GPU versions for Windows and Linux) are also available in the [Cellpose repository](https://github.com/mouseland/cellpose#installation).
+
+
 
 ## How does it work?
 
@@ -149,7 +155,7 @@ To analyze the GSD, use the jupyter notebook ```notebooks/3_gsd_analysis.ipynb``
 
 ### Training of custom models
 
-If you want to train your own models, you can use the jupyter notebook ```notebooks/4_model_training.ipynb```, you can use the [Cellpose GUI](https://www.cellpose.org/) (start it with ```python -m cellpose```) or train via [console](https://cellpose.readthedocs.io/en/latest/train.html) with the full funcitionality of Cellpose. To train custom models, you will first need manually annotated ground truth data ("labels"). This can be done either with the Cellpose GUI or with any dedicated annotation tool. We used the [labkit plugin](https://imagej.net/Labkit) for ImageJ. Please note, that each grain has to have a unique class value.
+If you want to train your own models, you can use the jupyter notebook ```notebooks/4_model_training.ipynb```, you can use the [Cellpose GUI](https://www.cellpose.org/) (start it with ```python -m cellpose```) or train via [console](https://cellpose.readthedocs.io/en/latest/train.html) with the full funcitionality of Cellpose. To train custom models, you will first need manually annotated ground truth data ("labels"). This can be done either with the Cellpose GUI or with any dedicated annotation tool. We used the [napari-based GUI](#how-does-it-work) and previously [labkit plugin](https://imagej.net/Labkit) for ImageJ. Please note, that each grain has to have a unique class value.
 
 ## Troubleshooting  
   
