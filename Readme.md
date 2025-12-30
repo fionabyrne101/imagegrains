@@ -21,7 +21,7 @@ The major update to `2.0` includes:
 * A [graphical user interface (GUI)](#how-does-it-work).  
   
 Try ImageGrains `2.0` with Cellpose-SAM in Colab with your own data in google drive:  
-[Complete grain size and shape analysis.ipynb](https://github.com/dmair1989/imagegrains/blob/86bce6379bb965fa255a7de269ca8baa6ccad3a8/notebooks/complete_imagegrains_analysis_colab.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/dmair1989/imagegrains/blob/main/notebooks/complete_imagegrains_analysis_colab.ipynb)  
+[Complete grain size and shape analysis.ipynb](https://github.com/dmair1989/imagegrains/blob/main/notebooks/Complete_grain_size_and_shape_analysis_colab.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/dmair1989/imagegrains/blob/main/notebooks/Complete_grain_size_and_shape_analysis_colab.ipynb)  
 
 ## Citation  
 
