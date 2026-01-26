@@ -15,7 +15,7 @@ A software library for segmenting and measuring of sedimentary particles in imag
 
 The major update to `2.0` includes:
 
-* Switching to [*Cellpose-SAM*](https://doi.org/10.1101/2025.04.28.651001) (```4.0.1+```) as default segmentation model, which improves the segmentation accuracy and generalization ***a lot***. For more details, see the paper.
+* Switching to [*Cellpose-SAM*](https://doi.org/10.1101/2025.04.28.651001) (```4.0.1+```) as default segmentation model, which improves the segmentation accuracy and generalization ***a lot***. For more details, see the [paper](https://doi.org/10.5194/egusphere-2025-6346).
 * [New models](https://doi.org/10.5281/zenodo.15309323) trained on a [larger dataset (IG2)](https://doi.org/10.5281/zenodo.17866827) that includes different types of grains and imagery.
 * Including 3D segmentation of CT-scan stacks; see [Notebook](https://github.com/dmair1989/imagegrains/blob/main/notebooks/CT_3D_segmentation.ipynb) and [Schuster et al. (2025)](https://doi.org/10.1111/bor.70023).  
 * A [graphical user interface (GUI)](#how-does-it-work).  
@@ -27,7 +27,7 @@ Try ImageGrains `2.0` with Cellpose-SAM in Colab with your own data in google dr
 
 If you use ImageGrains, please cite:
 
-- Mair, D., Witz, G., Do Prado, A., Garefalakis, P., Wild, A., Ville, F., Schuster, B., Horn, M., Österler, J., Fabbri, S. C., Litty, C., Achleitner, S., Leistner, S., Hiller, C., and Schlunegger, F.: ImageGrains 2.0: Improved precision and generalization for grain segmentation. *preprint details will be available soon*
+- Mair, D., Witz, G., Do Prado, A., Garefalakis, P., Wild, A., Ville, F., Schuster, B., Horn, M., Österle, J., Fabbri, S. C., Litty, C., Achleitner, S., Leistner, S., Hiller, C., and Schlunegger, F.: ImageGrains 2.0: Improved precision and generalization for grain segmentation, EGUsphere [preprint], <https://doi.org/10.5194/egusphere-2025-6346>.
 
 - Pachitariu, M., Rariden, M., Stringer, C.. Cellpose-SAM: superhuman generalization for cellular segmentation. bioRxiv 2025.04.28.651001; <https://doi.org/10.1101/2025.04.28.651001>
 
