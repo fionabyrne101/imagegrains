@@ -7,7 +7,7 @@
 ![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/dmair1989/imagegrains)
 [![PyPI Downloads](https://static.pepy.tech/badge/imagegrains)](https://pepy.tech/projects/imagegrains)
 
-A software library for segmenting and measuring of sedimentary particles in images. The segmentation is done with [*Cellpose*](https://github.com/mouseland/cellpose), designed for cell and nucleus segmentation in biomedical images. Its segmentation capability is transferred to geoscientific applications throurgh re-training of the model with images of sediment particles. Pretrained [segmentation models](https://doi.org/10.5281/zenodo.15309323) from our [data](https://doi.org/10.5281/zenodo.8005771) are available or custom models can be trained (see [paper](https://doi.org/10.1002/esp.5755) for details).
+A software library for segmenting and measuring of sedimentary particles in images. The segmentation is done with [*Cellpose-SAM*](https://github.com/mouseland/cellpose), designed for cell and nucleus segmentation in biomedical images. Its segmentation capability is transferred to geoscientific applications throurgh re-training of the model with images of sediment particles. Pretrained [segmentation models](https://doi.org/10.5281/zenodo.15309323) from our [data](https://doi.org/10.5281/zenodo.17866826) are available or custom models can be trained (see [paper](https://doi.org/10.1002/esp.5755) for details).
 
 <img src="https://github.com/dmair1989/ImageGrains/blob/main/illustrations/example.png?raw=true" align="center">
   
@@ -143,7 +143,7 @@ The main concept of ImageGrains is to first segment grains in images, then to me
 
 ### Segmentation of own images
 
-If you want to segment own images with pre-trained models, simply use the corresponding jupyter notebook ```notebooks/1_image_segmentation.ipynb```. To do so locally, open the console and activate the environment (```conda activate imagegrains```) and start your jupyter instance (e.g., via```jupyter lab```). Then, open the notebook and follow the instructions. You can use any model provied in ```/models``` or train a custom model (see below).
+If you want to segment own images with pre-trained models, simply use the corresponding jupyter notebook ```notebooks/1_image_segmentation.ipynb```. To do so locally, open the console and activate the environment (```conda activate imagegrains```) and start your jupyter instance (e.g., via```jupyter lab```). Then, open the notebook and follow the instructions. You can use pre-trained models or train a custom model (see below).
 
 ### Grain size measurements
 
@@ -155,7 +155,7 @@ To analyze the GSD, use the jupyter notebook ```notebooks/3_gsd_analysis.ipynb``
 
 ### Training of custom models
 
-If you want to train your own models, you can use the jupyter notebook ```notebooks/4_model_training.ipynb```, you can use the [Cellpose GUI](https://www.cellpose.org/) (start it with ```python -m cellpose```) or train via [console](https://cellpose.readthedocs.io/en/latest/train.html) with the full funcitionality of Cellpose. To train custom models, you will first need manually annotated ground truth data ("labels"). This can be done either with the Cellpose GUI or with any dedicated annotation tool. We used the [napari-based GUI](#how-does-it-work) and previously [labkit plugin](https://imagej.net/Labkit) for ImageJ. Please note, that each grain has to have a unique class value.
+If you want to train your own models, you can use the jupyter notebook ```notebooks/4_train_cellposeSAM_model.ipynb``` with the full funcitionality of Cellpose-SAM. To train custom models, you will first need manually annotated ground truth data ("labels"). This can be done with any dedicated annotation tool. We used the [napari-based GUI](#how-does-it-work) and previously [labkit plugin](https://imagej.net/Labkit) for ImageJ. Please note, that each grain has to have a unique class value.
 
 ## Troubleshooting  
   
