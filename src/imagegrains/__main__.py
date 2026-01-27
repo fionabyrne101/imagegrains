@@ -64,7 +64,7 @@ def main():
         print(f'>> Download to {install_path} successful.')
         exit()
 
-    tar_dir = '' if args.out_dir == None else args.out_dirs
+    tar_dir = '' if args.out_dir == None else args.out_dir
 
     if args.img_dir == None or os.path.exists(args.img_dir) == False:
         print('>> Please specify a valid input directory for images to segment.')
