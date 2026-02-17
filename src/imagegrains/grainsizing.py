@@ -1127,11 +1127,11 @@ def compare_gsds_to_gts(gsds,lbls,units='px',CI=0.05,mute=False,return_std=False
 def get_key_CIs(gsd_res,perc=[16,50,84,96]):
 
     if not any(gsd_res[0]):
-        ci_dists = np.zeros(4)
+        ci_dists = np.zeros(len(perc))
     else:
         ci_dists = np.round([[gsd_res[2][perc[i]],gsd_res[1][perc[i]]] for i in range(len(perc))],decimals=1)
     
-    return ci_dists[0], ci_dists[1], ci_dists[2], ci_dists[3]
+    return ci_dists
 
 def count_ks_hits(df, CI=0.05):
 
@@ -1150,7 +1150,8 @@ def avg_delta(df):
 def avg_std(df):
     return np.round(np.mean(df['delta_std']),decimals=2)
 
-def summary_statistics(files,id_list,res_list=None,res_dict=None,sep=',',unit='mm',axis='b-axis',approximation='ellipse',method='bootstrapping',save_summary=True,data_id='pred',mute=True,column_name='ell: b-axis (px)'):
+def summary_statistics(files,id_list,res_list=None,res_dict=None, key_perc=[16,50,84,96],
+                       sep=',',unit='mm',axis='b-axis',approximation='ellipse',method='bootstrapping',save_summary=True,data_id='pred',mute=True,column_name='ell: b-axis (px)'):
     
     if type(files)==str:
         files = [files]
@@ -1161,23 +1162,21 @@ def summary_statistics(files,id_list,res_list=None,res_dict=None,sep=',',unit='m
         file_id = id_list[i]
         n = len(grains)
         gsd = do_gsd(grains)
-        key_p = get_key_percs(gsd)
+        key_p = get_key_percs(gsd,perc=key_perc)
 
         if res_dict is not None:
-            key_CI = get_key_CIs(res_dict[file_id])
+            key_CI = get_key_CIs(res_dict[file_id],perc=key_perc)
         elif res_list is not None:
-            key_CI = get_key_CIs(res_list[i])
+            key_CI = get_key_CIs(res_list[i],perc=key_perc)
         else:
             if mute == False:
                 print('No results provided.')
             return
-        
-        summary_df = pd.concat([summary_df,pd.DataFrame({'Image/Masks':file_id,'number of grains':n,
-                        'D16':key_p[0],'CI D16 (95%)':str(key_CI[0]),
-                        'D50':key_p[1],'CI D50 (95%)':str(key_CI[1]),
-                        'D84':key_p[2],'CI D84 (95%)':str(key_CI[2]),
-                        'D96':key_p[3],'CI D96 (95%)':str(key_CI[3]),
-                        'unit':unit,'axis':axis,'method':method,'grain approximation':approximation},index=[i])], axis=0)
+        summary_dict = {f'D{key_perc[i]}':key_p[i] for i in range(len(key_perc))}
+        summary_dict.update({f'CI D{key_perc[i]} (95%)':str(key_CI[i]) for i in range(len(key_perc))})
+
+        summary_df = pd.concat([summary_df,pd.DataFrame({'Image/Masks':file_id,'number of grains':n,**summary_dict,
+                        'unit':unit,'axis':axis,'method':method,'grain approximation':approximation,},index=[i])], axis=0)
     summary_df = summary_df.round(decimals=2)
 
     if save_summary:
