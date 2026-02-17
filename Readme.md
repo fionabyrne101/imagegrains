@@ -69,7 +69,7 @@ pip install imagegrains==1.2.1
 
 ### GPU support  
 
-By default, *Cellpose* will run on the CPU. From version `4.0.1` on,  it uses a transformer (*Cellpose-SAM*) as backbone segmentation model, which is much larger than the previous model. **Using a GPU on local machines is strongly recommended**.  
+By default, *Cellpose* will run on the CPU if no GPU is available. From version `4.0.1` on,  it uses a transformer (*Cellpose-SAM*) as backbone segmentation model, which is much larger than the previous model. **Using a GPU on local machines is strongly recommended**.  
 
 **Mac**: Cellpose (version `4.0.1` and later) supports  [Apple GPUs (M1 and newer) out-of-the-box](https://cellpose.readthedocs.io/en/latest/installation.html#m1-m3-mac-installation).  
 
@@ -139,23 +139,23 @@ This will run the main application with the default settings on images in the pr
 
 <img src="https://github.com/dmair1989/ImageGrains/blob/main/illustrations/workflow.png?raw=true" width="550" title="wf" alt="wf" align="center">
 
-The main concept of ImageGrains is to first segment grains in images, then to measure and scale them with the respective image resolution before finally estimating the uncertainty on an image base. The whole workflow is designed to use individual images or a set of images in a specific folder. During the processing steps, all intermediate outputs can be stored.
+The main concept of ImageGrains is to first segment grains in images, then to measure and scale them with the respective image resolution before finally estimating the uncertainty on an image base. The whole workflow is designed to use individual images or a set of images in a specific folder. During the processing steps, all intermediate outputs can be stored. Short versions of the entire workflow are available in [Complete grain size and shape analysis.ipynb](https://github.com/dmair1989/imagegrains/blob/main/notebooks/Complete_grain_size_and_shape_analysis_colab.ipynb) and [notebooks/complete_imagegrains_analysis](https://github.com/dmair1989/imagegrains/blob/main/notebooks/complete_imagegrains_analysis.ipynb).
 
 ### Segmentation of own images
 
-If you want to segment own images with pre-trained models, simply use the corresponding jupyter notebook ```notebooks/1_image_segmentation.ipynb```. To do so locally, open the console and activate the environment (```conda activate imagegrains```) and start your jupyter instance (e.g., via```jupyter lab```). Then, open the notebook and follow the instructions. You can use pre-trained models or train a custom model (see below).
+For details on how to segment own images with pre-trained models, see the corresponding jupyter notebook ```notebooks/1_image_segmentation.ipynb```. To use it locally, open the console and activate the environment (```conda activate imagegrains```) and start your jupyter instance (e.g., via```jupyter lab```). Then, open the notebook and follow the instructions. You can use pre-trained models or train a custom model (see below).
 
-### Grain size measurements
+### Grain size and shape measurements
 
-To measure grain sizes, use the jupyter notebook ```notebooks/2_grain_sizes.ipynb```. It will load the segmented images and calculate the grain size for each grain on an image-by-image basis. Several options for outline fitting are available. The grain size is then scaled with the image resolution and stored in an output file. It is also possible to export individual grain outlines for further analysis.
+For details on how to measure grain sizes, see the jupyter notebook ```notebooks/2_grain_sizes.ipynb```. It will load the segmented grain masks and calculate the grain size and shape for each grain on an image-by-image basis. Several options for outline fitting are available. The grain size is then scaled with the image resolution and stored in an output file. It is also possible to export individual grain outlines for further analysis.
 
 ### Grain size distribution (GSD) and uncertainty
 
-To analyze the GSD, use the jupyter notebook ```notebooks/3_gsd_analysis.ipynb```. It will load the grain size measurements and calculate the GSD. Several for the uncertainty estimation are available. The uncertainty by default is calculated for each perecentile as 95% confidence interval. The GSD is then stored in an output file.
+For details on how to analyze the GSD, see the jupyter notebook ```notebooks/3_gsd_analysis.ipynb```. It will load the grain size measurements and calculate the GSD. Several options for uncertainty estimation are available. The uncertainty by default is calculated for each perecentile as 95% confidence interval. The GSD is then stored in an output file.
 
 ### Training of custom models
 
-If you want to train your own models, you can use the jupyter notebook ```notebooks/4_train_cellposeSAM_model.ipynb``` with the full funcitionality of Cellpose-SAM. To train custom models, you will first need manually annotated ground truth data ("labels"). This can be done with any dedicated annotation tool. We used the [napari-based GUI](#how-does-it-work) and previously [labkit plugin](https://imagej.net/Labkit) for ImageJ. Please note, that each grain has to have a unique class value.
+If you want to train your own models, you can use the jupyter notebook ```notebooks/4_train_cellposeSAM_model.ipynb``` with the full funcitionality of Cellpose-SAM. To train custom models, you will first need manually annotated ground truth data ("labels"). This can be done with any dedicated annotation tool. We used the [napari-based GUI](#how-does-it-work) and previously the [labkit plugin](https://imagej.net/Labkit) for ImageJ. Please note, that each grain has to have a unique class value.
 
 ## Troubleshooting  
   
